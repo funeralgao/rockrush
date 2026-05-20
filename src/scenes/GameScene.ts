@@ -3,10 +3,10 @@ import GameState from '../GameState'
 import SoundManager from '../SoundManager'
 import { getLevelConfig, LevelConfig } from '../LevelManager'
 
-// Grid constants - Large world size for exploration
+// Grid constants - Small fixed map
 const TILE_SIZE = 16
-const GRID_WIDTH = 80
-const GRID_HEIGHT = 60
+const GRID_WIDTH = 30
+const GRID_HEIGHT = 20
 
 export default class GameScene extends Phaser.Scene {
   // Robot vacuum
@@ -27,18 +27,13 @@ export default class GameScene extends Phaser.Scene {
 
   // Grid data
   private gridData: number[][] = []
-  private exploredGrid: boolean[][] = []  // Track explored tiles for fog-of-war
-  private floorTiles: (Phaser.GameObjects.Image | null)[][] = []
-  private fogTiles: (Phaser.GameObjects.Rectangle | null)[][] = []  // Unexplored fog
+  private floorTiles: Phaser.GameObjects.Image[][] = []
   private trashSprites: Phaser.GameObjects.Sprite[] = []
   private obstacles: Phaser.GameObjects.Image[] = []
   private batteryPickups: Phaser.GameObjects.Image[] = []
   private specialPickups: Phaser.GameObjects.Image[] = []
   private furniture: Phaser.GameObjects.Image[] = []
   private cleanTrails: Phaser.GameObjects.Image[] = []
-
-  // Camera and world
-  private cameraViewRadius = 6  // How far robot can "see" to reveal map
 
   // UI
   private healthBar!: Phaser.GameObjects.Graphics
@@ -72,9 +67,8 @@ export default class GameScene extends Phaser.Scene {
   create() {
     this.levelConfig = getLevelConfig(GameState.currentLevel)
 
-    // Reset robot position to center of initial explored area
-    this.robotGridX = Math.floor(GRID_WIDTH / 2)
-    this.robotGridY = Math.floor(GRID_HEIGHT / 2)
+    this.robotGridX = 1
+    this.robotGridY = 1
     this.isMoving = false
 
     this.initGrid(this.levelConfig)
@@ -105,20 +99,14 @@ export default class GameScene extends Phaser.Scene {
 
   initGrid(levelConfig: LevelConfig) {
     this.gridData = []
-    this.exploredGrid = []
     for (let y = 0; y < GRID_HEIGHT; y++) {
       this.gridData[y] = []
-      this.exploredGrid[y] = []
       for (let x = 0; x < GRID_WIDTH; x++) {
         if (x === 0 || x === GRID_WIDTH - 1 || y === 0 || y === GRID_HEIGHT - 1) {
           this.gridData[y][x] = 1
         } else {
           this.gridData[y][x] = 0
         }
-        // Start with center area explored
-        const centerX = GRID_WIDTH / 2
-        const centerY = GRID_HEIGHT / 2
-        this.exploredGrid[y][x] = (Math.abs(x - centerX) <= 3 && Math.abs(y - centerY) <= 3)
       }
     }
 
@@ -139,41 +127,27 @@ export default class GameScene extends Phaser.Scene {
 
   createMap() {
     this.floorTiles = []
-    this.fogTiles = []
 
-    // Get floor type from level config
     const floorType = this.levelConfig.floorType || 'wood'
     const dirtyFloorKey = floorType === 'tile' ? 'floor_dirty_tile' :
                           floorType === 'carpet' ? 'floor_dirty_carpet' : 'floor_dirty'
 
     for (let y = 0; y < GRID_HEIGHT; y++) {
       this.floorTiles[y] = []
-      this.fogTiles[y] = []
       for (let x = 0; x < GRID_WIDTH; x++) {
         const worldX = x * TILE_SIZE
         const worldY = y * TILE_SIZE
 
-        if (this.exploredGrid[y][x]) {
-          // Explored - show real tile
-          if (this.gridData[y][x] === 1) {
-            const wall = this.add.image(worldX + 8, worldY + 8, 'wall')
-            wall.setDepth(0)
-            const wallTop = this.add.rectangle(worldX + 8, worldY + 4, 14, 4, 0x3d5a73)
-            wallTop.setDepth(0.1)
-            this.floorTiles[y][x] = wall
-          } else {
-            const tile = this.add.image(worldX + 8, worldY + 8, dirtyFloorKey)
-            tile.setDepth(0)
-            this.floorTiles[y][x] = tile
-          }
-          // No fog for explored tiles
-          this.fogTiles[y][x] = null
+        if (this.gridData[y][x] === 1) {
+          const wall = this.add.image(worldX + 8, worldY + 8, 'wall')
+          wall.setDepth(0)
+          const wallTop = this.add.rectangle(worldX + 8, worldY + 4, 14, 4, 0x3d5a73)
+          wallTop.setDepth(0.1)
+          this.floorTiles[y][x] = wall
         } else {
-          // Not explored - show black fog
-          const fog = this.add.rectangle(worldX + 8, worldY + 8, 16, 16, 0x0a0a0f)
-          fog.setDepth(5)
-          this.fogTiles[y][x] = fog
-          this.floorTiles[y][x] = null
+          const tile = this.add.image(worldX + 8, worldY + 8, dirtyFloorKey)
+          tile.setDepth(0)
+          this.floorTiles[y][x] = tile
         }
       }
     }
@@ -187,22 +161,12 @@ export default class GameScene extends Phaser.Scene {
       const furnImage = this.add.image(worldX, worldY, item.type)
       furnImage.setDepth(2)
 
-      // Mark grid cells as blocked
       this.gridData[item.y][item.x] = 1
-
       this.furniture.push(furnImage)
     })
   }
 
   createRobot() {
-    // Set camera bounds to world size
-    this.cameras.main.setBounds(
-      0,
-      0,
-      GRID_WIDTH * TILE_SIZE,
-      GRID_HEIGHT * TILE_SIZE
-    )
-
     this.robotGlow = this.add.arc(
       this.robotGridX * TILE_SIZE + TILE_SIZE / 2,
       this.robotGridY * TILE_SIZE + TILE_SIZE / 2,
@@ -251,13 +215,9 @@ export default class GameScene extends Phaser.Scene {
       repeat: -1,
       ease: 'Linear',
     })
-
-    // Set camera to follow robot
-    this.cameras.main.startFollow(this.robot, true, 0.1, 0.1)
   }
 
   createParticleEffects() {
-    // Dust particles
     const rect = new Phaser.Geom.Rectangle(-5, -5, 10, 10)
     this.dustParticles = this.add.particles(0, 0, 'floor_clean', {
       x: 0,
@@ -273,7 +233,6 @@ export default class GameScene extends Phaser.Scene {
     this.dustParticles.setDepth(15)
     this.dustParticles.stop()
 
-    // Sparkle particles for collection effects
     this.sparkleEmitter = this.add.particles(0, 0, 'sparkle', {
       x: 0,
       y: 0,
@@ -306,7 +265,6 @@ export default class GameScene extends Phaser.Scene {
       ease: 'Cubic.easeOut',
     })
 
-    // Camera shake on start
     this.cameras.main.shake(200, 0.005)
   }
 
@@ -322,10 +280,10 @@ export default class GameScene extends Phaser.Scene {
         y = Phaser.Math.Between(2, GRID_HEIGHT - 3)
         attempts++
       } while (
-        (this.gridData[y][x] !== 0 && this.gridData[y][x] !== 2) ||
+        this.gridData[y][x] !== 0 &&
+        this.gridData[y][x] !== 2 &&
         (x === this.robotGridX && y === this.robotGridY) ||
         this.isTrashAt(x, y) ||
-        !this.exploredGrid[y][x] ||
         attempts > 100
       )
 
@@ -366,7 +324,6 @@ export default class GameScene extends Phaser.Scene {
         attempts > 50
       )
 
-      // Water is passable, cable/poop block movement
       if (type !== 'water') {
         this.gridData[y][x] = 3
       }
@@ -382,7 +339,6 @@ export default class GameScene extends Phaser.Scene {
       obs.setData('type', type)
       obs.setData('cleaned', false)
 
-      // Water has subtle animation
       if (type === 'water') {
         this.tweens.add({
           targets: obs,
@@ -394,7 +350,6 @@ export default class GameScene extends Phaser.Scene {
         })
       }
 
-      // Cable wiggle
       if (type === 'cable') {
         this.tweens.add({
           targets: obs,
@@ -473,7 +428,6 @@ export default class GameScene extends Phaser.Scene {
       toy.setData('gridY', y)
       toy.setData('type', type)
 
-      // Bouncing animation
       this.tweens.add({
         targets: toy,
         y: toy.y - 4,
@@ -494,7 +448,6 @@ export default class GameScene extends Phaser.Scene {
   }
 
   createUI(levelName: string) {
-    // Battery frame: outer border from x=8, inner fill from x=18, health bar from x=19
     this.add.rectangle(8, this.uiY, 16, 16, 0x2a2a3e, 1).setOrigin(0, 0.5).setDepth(100).setStrokeStyle(1, 0xff0000)
     this.add.rectangle(19, this.uiY, 80, 12, 0x444444).setOrigin(0, 0.5).setDepth(101)
 
@@ -726,17 +679,10 @@ export default class GameScene extends Phaser.Scene {
 
   moveRobot(newX: number, newY: number) {
     this.isMoving = true
-    const oldX = this.robotGridX
-    const oldY = this.robotGridY
     this.robotGridX = newX
     this.robotGridY = newY
 
-    // Reveal fog around new position
-    this.revealFogAround(newX, newY)
-
-    // Leave clean trail
     this.addCleanTrail(newX, newY)
-
     this.dustParticles.start()
 
     this.tweens.add({
@@ -752,244 +698,12 @@ export default class GameScene extends Phaser.Scene {
     })
   }
 
-  revealFogAround(centerX: number, centerY: number) {
-    const floorType = this.levelConfig.floorType || 'wood'
-    const dirtyFloorKey = floorType === 'tile' ? 'floor_dirty_tile' :
-                          floorType === 'carpet' ? 'floor_dirty_carpet' : 'floor_dirty'
-
-    for (let dy = -this.cameraViewRadius; dy <= this.cameraViewRadius; dy++) {
-      for (let dx = -this.cameraViewRadius; dx <= this.cameraViewRadius; dx++) {
-        const tx = centerX + dx
-        const ty = centerY + dy
-
-        // Skip if out of bounds
-        if (tx < 0 || tx >= GRID_WIDTH || ty < 0 || ty >= GRID_HEIGHT) continue
-
-        // Skip if already explored
-        if (this.exploredGrid[ty][tx]) continue
-
-        // Check if within view radius
-        const dist = Math.sqrt(dx * dx + dy * dy)
-        if (dist > this.cameraViewRadius) continue
-
-        // Mark as explored
-        this.exploredGrid[ty][tx] = true
-
-        // Remove fog
-        const fog = this.fogTiles[ty][tx]
-        if (fog) {
-          this.tweens.add({
-            targets: fog,
-            alpha: 0,
-            duration: 300,
-            onComplete: () => fog.destroy(),
-          })
-        }
-
-        // Create floor tile
-        const worldX = tx * TILE_SIZE
-        const worldY = ty * TILE_SIZE
-
-        if (this.gridData[ty][tx] === 1) {
-          // Wall
-          const wall = this.add.image(worldX + 8, worldY + 8, 'wall')
-          wall.setDepth(0)
-          wall.setAlpha(0)
-          const wallTop = this.add.rectangle(worldX + 8, worldY + 4, 14, 4, 0x3d5a73)
-          wallTop.setDepth(0.1)
-          wallTop.setAlpha(0)
-          this.tweens.add({
-            targets: [wall, wallTop],
-            alpha: 1,
-            duration: 300,
-          })
-          this.floorTiles[ty][tx] = wall
-        } else {
-          // Floor tile
-          const tile = this.add.image(worldX + 8, worldY + 8, dirtyFloorKey)
-          tile.setDepth(0)
-          tile.setAlpha(0)
-          this.tweens.add({
-            targets: tile,
-            alpha: 1,
-            duration: 300,
-          })
-          this.floorTiles[ty][tx] = tile
-
-          // Spawn items in this newly revealed tile
-          this.spawnItemsInTile(tx, ty)
-        }
-      }
-    }
-  }
-
-  spawnItemsInTile(x: number, y: number) {
-    // Only spawn on walkable tiles
-    if (this.gridData[y][x] !== 0) return
-
-    // Random chance to spawn trash
-    if (Math.random() < 0.08 && this.trashSprites.length < this.levelConfig.trashCount) {
-      if (!this.isTrashAt(x, y) && !(x === this.robotGridX && y === this.robotGridY)) {
-        const trash = this.add.sprite(
-          x * TILE_SIZE + TILE_SIZE / 2,
-          y * TILE_SIZE + TILE_SIZE / 2,
-          'trash'
-        )
-        trash.setDepth(5)
-        trash.setData('gridX', x)
-        trash.setData('gridY', y)
-        trash.setData('collected', false)
-        this.tweens.add({
-          targets: trash,
-          y: trash.y - 3,
-          duration: 400 + Math.random() * 400,
-          yoyo: true,
-          repeat: -1,
-          ease: 'Sine.easeInOut',
-        })
-        this.trashSprites.push(trash)
-        this.totalTrash++
-      }
-    }
-
-    // Random chance to spawn cable
-    if (Math.random() < 0.03 && this.obstacles.filter(o => o.getData('type') === 'cable').length < this.levelConfig.cableCount) {
-      if (!this.isObstacleAt(x, y)) {
-        const cable = this.add.image(
-          x * TILE_SIZE + TILE_SIZE / 2,
-          y * TILE_SIZE + TILE_SIZE / 2,
-          'cable'
-        )
-        cable.setDepth(6)
-        cable.setData('gridX', x)
-        cable.setData('gridY', y)
-        cable.setData('type', 'cable')
-        cable.setData('cleaned', false)
-        this.tweens.add({
-          targets: cable,
-          angle: 5,
-          duration: 1000 + Math.random() * 500,
-          yoyo: true,
-          repeat: -1,
-          ease: 'Sine.easeInOut',
-        })
-        this.obstacles.push(cable)
-        this.gridData[y][x] = 3
-      }
-    }
-
-    // Random chance to spawn poop
-    if (Math.random() < 0.015 && this.obstacles.filter(o => o.getData('type') === 'poop').length < this.levelConfig.poopCount) {
-      if (!this.isObstacleAt(x, y)) {
-        const poop = this.add.image(
-          x * TILE_SIZE + TILE_SIZE / 2,
-          y * TILE_SIZE + TILE_SIZE / 2,
-          'poop'
-        )
-        poop.setDepth(6)
-        poop.setData('gridX', x)
-        poop.setData('gridY', y)
-        poop.setData('type', 'poop')
-        poop.setData('cleaned', false)
-        this.obstacles.push(poop)
-        this.gridData[y][x] = 3
-      }
-    }
-
-    // Random chance to spawn water
-    if (Math.random() < 0.03 && this.obstacles.filter(o => o.getData('type') === 'water').length < this.levelConfig.waterCount) {
-      if (!this.isObstacleAt(x, y)) {
-        const water = this.add.image(
-          x * TILE_SIZE + TILE_SIZE / 2,
-          y * TILE_SIZE + TILE_SIZE / 2,
-          'water'
-        )
-        water.setDepth(6)
-        water.setData('gridX', x)
-        water.setData('gridY', y)
-        water.setData('type', 'water')
-        water.setData('cleaned', false)
-        this.tweens.add({
-          targets: water,
-          alpha: 0.7,
-          duration: 500 + Math.random() * 500,
-          yoyo: true,
-          repeat: -1,
-          ease: 'Sine.easeInOut',
-        })
-        this.obstacles.push(water)
-      }
-    }
-
-    // Random chance to spawn battery
-    if (Math.random() < 0.02 && this.batteryPickups.length < this.levelConfig.batteryCount) {
-      if (!this.isBatteryAt(x, y)) {
-        const battery = this.add.image(
-          x * TILE_SIZE + TILE_SIZE / 2,
-          y * TILE_SIZE + TILE_SIZE / 2,
-          'battery'
-        )
-        battery.setDepth(7)
-        battery.setData('gridX', x)
-        battery.setData('gridY', y)
-        this.tweens.add({
-          targets: battery,
-          scale: 1.1,
-          duration: 600,
-          yoyo: true,
-          repeat: -1,
-          ease: 'Sine.easeInOut',
-        })
-        this.batteryPickups.push(battery)
-      }
-    }
-
-    // Random chance to spawn toy
-    if (Math.random() < 0.01 && this.specialPickups.length < this.levelConfig.toyCount) {
-      if (!this.isToyAt(x, y)) {
-        const toy = this.add.image(
-          x * TILE_SIZE + TILE_SIZE / 2,
-          y * TILE_SIZE + TILE_SIZE / 2,
-          'toy'
-        )
-        toy.setDepth(7)
-        toy.setData('gridX', x)
-        toy.setData('gridY', y)
-        this.tweens.add({
-          targets: toy,
-          angle: 10,
-          duration: 800,
-          yoyo: true,
-          repeat: -1,
-          ease: 'Sine.easeInOut',
-        })
-        this.specialPickups.push(toy)
-      }
-    }
-  }
-
-  isObstacleAt(x: number, y: number): boolean {
-    return this.obstacles.some(o => o.getData('gridX') === x && o.getData('gridY') === y)
-  }
-
-  isBatteryAt(x: number, y: number): boolean {
-    return this.batteryPickups.some(b => b.getData('gridX') === x && b.getData('gridY') === y)
-  }
-
-  isToyAt(x: number, y: number): boolean {
-    return this.specialPickups.some(t => t.getData('gridX') === x && t.getData('gridY') === y)
-  }
-
   addCleanTrail(x: number, y: number) {
-    // Mark this tile as shiny (cleaned)
     if (this.gridData[y][x] === 0 && this.floorTiles[y][x]) {
       this.gridData[y][x] = 2
       const shinyFloorKey = this.getShinyFloorKey()
-
-      // Change floor tile to shiny directly (no animation)
       this.floorTiles[y][x].setTexture(shinyFloorKey)
 
-      // Also add a temporary sparkle effect
       const trail = this.add.image(
         x * TILE_SIZE + TILE_SIZE / 2,
         y * TILE_SIZE + TILE_SIZE / 2,
@@ -1011,7 +725,6 @@ export default class GameScene extends Phaser.Scene {
   }
 
   checkCollisions() {
-    // Super suction
     const suctionLevel = GameState.getSkillLevel('super_suction')
     if (suctionLevel > 0) {
       const suctionRange = suctionLevel + 1
@@ -1028,7 +741,6 @@ export default class GameScene extends Phaser.Scene {
       })
     }
 
-    // Trash collection
     this.trashSprites.forEach(trash => {
       if (!trash.getData('collected')) {
         const tx = trash.getData('gridX')
@@ -1040,7 +752,6 @@ export default class GameScene extends Phaser.Scene {
       }
     })
 
-    // Battery pickup
     this.batteryPickups.forEach(battery => {
       const bx = battery.getData('gridX')
       const by = battery.getData('gridY')
@@ -1050,7 +761,6 @@ export default class GameScene extends Phaser.Scene {
       }
     })
 
-    // Special pickups (toys)
     this.specialPickups.forEach(toy => {
       const tx = toy.getData('gridX')
       const ty = toy.getData('gridY')
@@ -1060,7 +770,6 @@ export default class GameScene extends Phaser.Scene {
       }
     })
 
-    // Clean water when robot walks over it
     this.obstacles.forEach(obs => {
       if (obs.getData('type') === 'water' && !obs.getData('cleaned')) {
         const ox = obs.getData('gridX')
@@ -1076,11 +785,9 @@ export default class GameScene extends Phaser.Scene {
   cleanWater(obs: Phaser.GameObjects.Image) {
     obs.setData('cleaned', true)
 
-    // Sparkle effect
     this.sparkleEmitter.setPosition(obs.x, obs.y)
     this.sparkleEmitter.explode(8)
 
-    // Fade out animation
     this.tweens.add({
       targets: obs,
       alpha: 0,
@@ -1089,7 +796,6 @@ export default class GameScene extends Phaser.Scene {
       onComplete: () => obs.destroy(),
     })
 
-    // Score popup
     const popup = this.add.text(obs.x, obs.y - 10, '+5💧', {
       fontFamily: 'monospace',
       fontSize: '10px',
@@ -1111,7 +817,6 @@ export default class GameScene extends Phaser.Scene {
   }
 
   showDamageEffect() {
-    // Red flash overlay (poop damage)
     const flash = this.add.rectangle(
       this.cameras.main.width / 2,
       this.cameras.main.height / 2,
@@ -1121,7 +826,6 @@ export default class GameScene extends Phaser.Scene {
       0.4
     ).setDepth(150)
 
-    // Screen shake
     this.cameras.main.shake(100, 0.015)
 
     this.tweens.add({
@@ -1131,7 +835,6 @@ export default class GameScene extends Phaser.Scene {
       onComplete: () => flash.destroy(),
     })
 
-    // Show warning icon above robot
     const warning = this.add.text(this.robot.x, this.robot.y - 20, '⚠️', {
       fontSize: '16px',
     }).setOrigin(0.5).setDepth(160)
@@ -1146,7 +849,6 @@ export default class GameScene extends Phaser.Scene {
   }
 
   showSmallDamageEffect() {
-    // Yellow/orange flash for minor damage (cable)
     const flash = this.add.rectangle(
       this.cameras.main.width / 2,
       this.cameras.main.height / 2,
@@ -1164,29 +866,9 @@ export default class GameScene extends Phaser.Scene {
     })
   }
 
-  showSlipperyEffect() {
-    // Blue ripple effect
-    const ripple = this.add.circle(
-      this.robot.x,
-      this.robot.y,
-      10,
-      0x4169E1,
-      0.5
-    ).setDepth(15)
-
-    this.tweens.add({
-      targets: ripple,
-      scale: 3,
-      alpha: 0,
-      duration: 400,
-      onComplete: () => ripple.destroy(),
-    })
-  }
-
   collectTrash(trash: Phaser.GameObjects.Sprite) {
     trash.setData('collected', true)
 
-    // Sparkle effect
     this.sparkleEmitter.setPosition(trash.x, trash.y)
     this.sparkleEmitter.explode(10)
 
@@ -1306,7 +988,6 @@ export default class GameScene extends Phaser.Scene {
       onComplete: () => toy.destroy(),
     })
 
-    // Bonus points!
     const bonus = 25
     this.score += bonus
 
@@ -1326,7 +1007,6 @@ export default class GameScene extends Phaser.Scene {
       onComplete: () => popup.destroy(),
     })
 
-    // Sparkle burst
     this.sparkleEmitter.setPosition(toy.x, toy.y)
     this.sparkleEmitter.explode(15)
 
@@ -1345,7 +1025,6 @@ export default class GameScene extends Phaser.Scene {
   onVictory() {
     GameState.updateHighScore(this.score)
 
-    // Big celebration effect
     for (let i = 0; i < 5; i++) {
       this.time.delayedCall(i * 100, () => {
         const x = Phaser.Math.Between(50, this.cameras.main.width - 50)
@@ -1386,15 +1065,12 @@ export default class GameScene extends Phaser.Scene {
     const ecoLevel = GameState.getSkillLevel('eco_mode')
     const ecoMultiplier = 1 - (ecoLevel * 0.2)
 
-    // Base drain per frame
     this.health -= 0.006 * ecoMultiplier
 
-    // Moving costs more
     if (this.isMoving) {
       this.health -= 0.012 * ecoMultiplier
     }
 
-    // Obstacle damage (high damage when touching)
     let touchingObstacle = false
     let obstacleType = ''
 
@@ -1408,22 +1084,19 @@ export default class GameScene extends Phaser.Scene {
         obstacleType = type
 
         if (type === 'cable') {
-          this.health -= 2.0 * ecoMultiplier // Was 0.5, now much higher
+          this.health -= 2.0 * ecoMultiplier
         } else if (type === 'poop') {
-          this.health -= 4.0 * ecoMultiplier // Was 1.0, very dangerous
+          this.health -= 4.0 * ecoMultiplier
         }
       }
     })
 
-    // Show damage effect when touching obstacles
     if (touchingObstacle && !this.isMoving) {
       if (obstacleType === 'poop') {
-        // Poop - big damage, show warning
-        if (Math.random() < 0.1) { // Flash occasionally
+        if (Math.random() < 0.1) {
           this.showDamageEffect()
         }
       } else if (obstacleType === 'cable') {
-        // Cable - smaller but constant
         if (Math.random() < 0.05) {
           this.showSmallDamageEffect()
         }
@@ -1445,7 +1118,6 @@ export default class GameScene extends Phaser.Scene {
       GameState.updateHighScore(this.score)
       SoundManager.playGameOver()
 
-      // Dramatic death effect
       this.cameras.main.shake(300, 0.02)
       this.time.delayedCall(300, () => {
         this.scene.start('GameOverScene', {
