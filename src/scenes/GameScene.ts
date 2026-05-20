@@ -5,8 +5,8 @@ import { getLevelConfig, LevelConfig } from '../LevelManager'
 
 // Grid constants - Large world size for exploration
 const TILE_SIZE = 16
-const GRID_WIDTH = 80
-const GRID_HEIGHT = 60
+const GRID_WIDTH = 40
+const GRID_HEIGHT = 30
 
 export default class GameScene extends Phaser.Scene {
   // Robot vacuum
