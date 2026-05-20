@@ -315,12 +315,13 @@ export default class GameScene extends Phaser.Scene {
       let x, y
       let attempts = 0
       do {
-        x = Phaser.Math.Between(3, GRID_WIDTH - 4)
-        y = Phaser.Math.Between(3, GRID_HEIGHT - 4)
+        x = Phaser.Math.Between(2, GRID_WIDTH - 3)
+        y = Phaser.Math.Between(2, GRID_HEIGHT - 3)
         attempts++
       } while (
         this.gridData[y][x] !== 0 ||
         (Math.abs(x - this.robotGridX) < 4 && Math.abs(y - this.robotGridY) < 4) ||
+        this.isNearObstacle(x, y) ||
         attempts > 50
       )
 
@@ -445,6 +446,49 @@ export default class GameScene extends Phaser.Scene {
     return this.trashSprites.some(
       t => !t.getData('collected') && t.getData('gridX') === x && t.getData('gridY') === y
     )
+  }
+
+  isNearWall(x: number, y: number): boolean {
+    // Check adjacent cells for walls
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        const nx = x + dx
+        const ny = y + dy
+        if (nx >= 0 && nx < GRID_WIDTH && ny >= 0 && ny < GRID_HEIGHT) {
+          if (this.gridData[ny][nx] === 1) return true
+        }
+      }
+    }
+    return false
+  }
+
+  isNearFurniture(x: number, y: number): boolean {
+    // Check adjacent cells for furniture (gridData value of 1)
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        const nx = x + dx
+        const ny = y + dy
+        if (nx >= 0 && nx < GRID_WIDTH && ny >= 0 && ny < GRID_HEIGHT) {
+          if (this.gridData[ny][nx] === 1) return true
+        }
+      }
+    }
+    return false
+  }
+
+  isNearObstacle(x: number, y: number): boolean {
+    // Check adjacent cells for existing obstacles
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        if (dx === 0 && dy === 0) continue
+        const nx = x + dx
+        const ny = y + dy
+        if (this.obstacles.some(o => o.getData('gridX') === nx && o.getData('gridY') === ny)) {
+          return true
+        }
+      }
+    }
+    return false
   }
 
   createUI(levelName: string) {
