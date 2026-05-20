@@ -5,8 +5,8 @@ import { getLevelConfig, LevelConfig } from '../LevelManager'
 
 // Grid constants - Large world size for exploration
 const TILE_SIZE = 16
-const GRID_WIDTH = 40
-const GRID_HEIGHT = 30
+const GRID_WIDTH = 80
+const GRID_HEIGHT = 60
 
 export default class GameScene extends Phaser.Scene {
   // Robot vacuum
@@ -76,10 +76,6 @@ export default class GameScene extends Phaser.Scene {
     this.robotGridX = Math.floor(GRID_WIDTH / 2)
     this.robotGridY = Math.floor(GRID_HEIGHT / 2)
     this.isMoving = false
-
-    // Set camera to follow robot in the large world
-    this.cameras.main.startFollow(this.robot, true, 0.1, 0.1)
-    this.cameras.main.setZoom(1)
 
     this.initGrid(this.levelConfig)
     this.createMap()
@@ -255,6 +251,9 @@ export default class GameScene extends Phaser.Scene {
       repeat: -1,
       ease: 'Linear',
     })
+
+    // Set camera to follow robot
+    this.cameras.main.startFollow(this.robot, true, 0.1, 0.1)
   }
 
   createParticleEffects() {
