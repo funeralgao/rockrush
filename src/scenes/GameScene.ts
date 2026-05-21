@@ -92,6 +92,7 @@ export default class GameScene extends Phaser.Scene {
     this.robotGridY = Math.floor(GRID_HEIGHT / 2)
     this.isMoving = false
     this.isGameOver = false
+    this.health = 100
     this.dustBox = 0
     this.waterTank = 100
 
@@ -593,9 +594,10 @@ export default class GameScene extends Phaser.Scene {
     this.updateDustBoxBar()
     this.updateWaterTankBar()
 
-    this.levelText = this.add.text(startX + 60, this.uiY, `${levelName}`, {
-      fontFamily: 'Arial', fontSize: '9px', color: '#cccccc', stroke: '#000000', strokeThickness: 1
-    }).setOrigin(0, 0.5)
+    // Level name at bottom center
+    this.levelText = this.add.text(this.cameras.main.width / 2, this.cameras.main.height - 10, `${levelName}`, {
+      fontFamily: 'Arial', fontSize: '10px', color: '#cccccc', stroke: '#000000', strokeThickness: 1
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(100)
     this.uiContainer.add(this.levelText)
 
     this.scoreText = this.add.text(startX + 120, this.uiY, `分数: ${this.score}`, {
@@ -885,6 +887,7 @@ export default class GameScene extends Phaser.Scene {
 
     // Rotate robot before moving
     this.updateRobotRotation()
+    SoundManager.playMove()
 
     this.addCleanTrail(newX, newY)
     this.dustParticles.start()
@@ -1042,6 +1045,7 @@ export default class GameScene extends Phaser.Scene {
     if (this.dustBox > 0 || this.waterTank < this.maxWaterTank) {
       this.dustBox = 0
       this.waterTank = this.maxWaterTank
+      SoundManager.playBaseStationReset()
 
       // Show reset effect
       const resetPopup = this.add.text(
@@ -1092,7 +1096,7 @@ export default class GameScene extends Phaser.Scene {
     })
 
     this.score += 5
-    SoundManager.playCollect()
+    SoundManager.playCleanWater()
   }
 
   showDamageEffect() {
@@ -1148,6 +1152,25 @@ export default class GameScene extends Phaser.Scene {
   collectTrash(trash: Phaser.GameObjects.Sprite) {
     trash.setData('collected', true)
 
+    if (this.dustBox >= this.maxDustBox) {
+      const warning = this.add.text(trash.x, trash.y - 20, '尘盒满了!', {
+        fontFamily: 'monospace',
+        fontSize: '14px',
+        color: '#ff4444',
+        stroke: '#000000',
+        strokeThickness: 2,
+      }).setOrigin(0.5).setDepth(50)
+
+      this.tweens.add({
+        targets: warning,
+        y: warning.y - 20,
+        alpha: 0,
+        duration: 800,
+        onComplete: () => warning.destroy(),
+      })
+      return
+    }
+
     this.sparkleEmitter.setPosition(trash.x, trash.y)
     this.sparkleEmitter.explode(10)
 
@@ -1178,7 +1201,7 @@ export default class GameScene extends Phaser.Scene {
     this.score += 10
     this.collectedTrash++
     this.dustBox = Math.min(this.maxDustBox, this.dustBox + 1)
-    SoundManager.playCollect()
+    SoundManager.playCollectTrash()
     this.updateCleanPercent()
 
     const tx = trash.getData('gridX')
@@ -1256,7 +1279,7 @@ export default class GameScene extends Phaser.Scene {
       onComplete: () => flash.destroy(),
     })
 
-    SoundManager.playBattery()
+    SoundManager.playCollectBattery()
   }
 
   collectToy(toy: Phaser.GameObjects.Image) {
@@ -1290,7 +1313,7 @@ export default class GameScene extends Phaser.Scene {
     this.sparkleEmitter.setPosition(toy.x, toy.y)
     this.sparkleEmitter.explode(15)
 
-    SoundManager.playCollect()
+    SoundManager.playCollectToy()
   }
 
   updateCleanPercent() {

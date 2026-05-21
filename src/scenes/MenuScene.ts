@@ -52,10 +52,49 @@ export default class MenuScene extends Phaser.Scene {
       color: '#cccccc',
     }).setOrigin(0.5)
 
+    // Restart button (at top)
+    const restartBtn = this.add.rectangle(
+      width / 2,
+      110,
+      200,
+      40,
+      0x2a2a3e,
+      1
+    )
+    restartBtn.setStrokeStyle(2, 0xff0000)
+    restartBtn.setInteractive({ useHandCursor: true })
+
+    const restartText = this.add.text(width / 2, 110, '🔄 重新开始游戏', {
+      fontFamily: 'Arial',
+      fontSize: '14px',
+      color: '#ffffff',
+    }).setOrigin(0.5)
+
+    restartBtn.on('pointerover', () => {
+      restartBtn.setFillStyle(0x3a2a3e)
+      restartBtn.setStrokeStyle(3, 0xff4444)
+      restartText.setColor('#ff4444')
+    })
+
+    restartBtn.on('pointerout', () => {
+      restartBtn.setFillStyle(0x2a2a3e)
+      restartBtn.setStrokeStyle(2, 0xff0000)
+      restartText.setColor('#ffffff')
+    })
+
+    restartBtn.on('pointerdown', () => {
+      SoundManager.playClick()
+      GameState.resetProgress()
+      this.cameras.main.fade(300, 0, 0, 0)
+      this.time.delayedCall(300, () => {
+        this.scene.start('GameScene')
+      })
+    })
+
     // Start button
     const startBtn = this.add.rectangle(
       width / 2,
-      120,
+      160,
       200,
       40,
       0x2a2a3e,
@@ -64,9 +103,9 @@ export default class MenuScene extends Phaser.Scene {
     startBtn.setStrokeStyle(2, 0xff0000)
     startBtn.setInteractive({ useHandCursor: true })
 
-    const startText = this.add.text(width / 2, 120, '▶ 开始游戏', {
+    const startText = this.add.text(width / 2, 160, '▶ 开始游戏', {
       fontFamily: 'Arial',
-      fontSize: '16px',
+      fontSize: '14px',
       color: '#ffffff',
     }).setOrigin(0.5)
 
@@ -84,6 +123,7 @@ export default class MenuScene extends Phaser.Scene {
 
     startBtn.on('pointerdown', () => {
       SoundManager.playClick()
+      GameState.hasPlayed = true
       this.cameras.main.fade(300, 0, 0, 0)
       this.time.delayedCall(300, () => {
         this.scene.start('GameScene')
@@ -93,7 +133,7 @@ export default class MenuScene extends Phaser.Scene {
     // Level select button
     const levelBtn = this.add.rectangle(
       width / 2,
-      170,
+      210,
       200,
       40,
       0x2a2a3e,
@@ -102,7 +142,7 @@ export default class MenuScene extends Phaser.Scene {
     levelBtn.setStrokeStyle(2, 0xff0000)
     levelBtn.setInteractive({ useHandCursor: true })
 
-    const levelText = this.add.text(width / 2, 170, '📍 选择关卡', {
+    const levelText = this.add.text(width / 2, 210, '📍 选择关卡', {
       fontFamily: 'Arial',
       fontSize: '14px',
       color: '#ffffff',
@@ -131,7 +171,7 @@ export default class MenuScene extends Phaser.Scene {
     // Skills button
     const skillsBtn = this.add.rectangle(
       width / 2,
-      220,
+      260,
       200,
       40,
       0x2a2a3e,
@@ -140,7 +180,7 @@ export default class MenuScene extends Phaser.Scene {
     skillsBtn.setStrokeStyle(2, 0xcc0000)
     skillsBtn.setInteractive({ useHandCursor: true })
 
-    const skillsText = this.add.text(width / 2, 220, `⚡ 技能 (${GameState.skillPoints}点)`, {
+    const skillsText = this.add.text(width / 2, 260, `⚡ 技能 (${GameState.skillPoints}点)`, {
       fontFamily: 'Arial',
       fontSize: '14px',
       color: '#ff4444',
@@ -176,26 +216,34 @@ export default class MenuScene extends Phaser.Scene {
     })
 
     // High score
-    this.add.text(width / 2, 270, `最高分: ${GameState.highScore}`, {
+    this.add.text(width / 2, 310, `最高分: ${GameState.highScore}`, {
       fontFamily: 'Arial',
       fontSize: '12px',
       color: '#888888',
     }).setOrigin(0.5)
 
     // Instructions
-    this.add.text(width / 2, 290, 'WASD/方向键移动 | 避开线材 | 收集电池', {
+    this.add.text(width / 2, 330, 'WASD/方向键移动 | 避开线材 | 收集电池', {
       fontFamily: 'Arial',
       fontSize: '10px',
       color: '#666666',
     }).setOrigin(0.5)
 
-    // Keyboard
-    this.input.keyboard?.once('keydown-SPACE', () => {
-      this.scene.start('GameScene')
-    })
-
-    this.input.keyboard?.once('keydown-ENTER', () => {
-      this.scene.start('GameScene')
-    })
+    // Check if user has played before - show restart button only if they have progress
+    if (!GameState.hasPlayed) {
+      // Hide restart button on first visit
+      restartBtn.setVisible(false)
+      restartText.setVisible(false)
+    } else {
+      // Show restart button on subsequent visits
+      restartBtn.on('pointerdown', () => {
+        SoundManager.playClick()
+        GameState.resetProgress()
+        this.cameras.main.fade(300, 0, 0, 0)
+        this.time.delayedCall(300, () => {
+          this.scene.start('GameScene')
+        })
+      })
+    }
   }
 }

@@ -9,6 +9,7 @@ export interface SaveData {
   totalSkillPointsEarned: number
   highScore: number
   unlockedLevels: number
+  hasPlayed: boolean
 }
 
 class GameState {
@@ -20,6 +21,7 @@ class GameState {
   totalSkillPointsEarned: number = 0
   highScore: number = 0
   unlockedLevels: number = 1
+  hasPlayed: boolean = false
 
   private constructor() {
     // Initialize all skills at level 0
@@ -47,6 +49,7 @@ class GameState {
       totalSkillPointsEarned: this.totalSkillPointsEarned,
       highScore: this.highScore,
       unlockedLevels: this.unlockedLevels,
+      hasPlayed: this.hasPlayed,
     }
     try {
       localStorage.setItem(SAVE_KEY, JSON.stringify(data))
@@ -65,6 +68,7 @@ class GameState {
         this.totalSkillPointsEarned = data.totalSkillPointsEarned ?? 0
         this.highScore = data.highScore ?? 0
         this.unlockedLevels = data.unlockedLevels ?? 1
+        this.hasPlayed = data.hasPlayed ?? false
 
         // Load skill states if available
         if (data.skillState && Array.isArray(data.skillState)) {
@@ -86,6 +90,7 @@ class GameState {
     this.skillPoints = 0
     this.totalSkillPointsEarned = 0
     this.unlockedLevels = 1
+    this.hasPlayed = false
     SKILLS.forEach(skill => {
       const state = this.skillState.find(s => s.id === skill.id)
       if (state) state.currentLevel = 0
