@@ -315,6 +315,92 @@ export default class BootScene extends Phaser.Scene {
     shinyCarpetG.generateTexture('floor_shiny_carpet', 16, 16)
     shinyCarpetG.destroy()
 
+    // ===== DIRTY FLOOR NEEDS WATER (darker, more stained) =====
+    // Wood - dirty needs water
+    const dirtyNeedsWaterWoodG = new Phaser.GameObjects.Graphics(this)
+    dirtyNeedsWaterWoodG.fillStyle(0xA08060, 1)
+    dirtyNeedsWaterWoodG.fillRect(0, 0, 16, 16)
+    dirtyNeedsWaterWoodG.lineStyle(1, 0x8a6a4a, 0.5)
+    for (let i = 0; i < 4; i++) {
+      dirtyNeedsWaterWoodG.lineBetween(0, i * 4 + 1, 16, i * 4 + 1)
+      dirtyNeedsWaterWoodG.lineBetween(0, i * 4 + 3, 16, i * 4 + 3)
+    }
+    // Dark stains
+    dirtyNeedsWaterWoodG.fillStyle(0x6a5040, 0.5)
+    dirtyNeedsWaterWoodG.fillCircle(4, 4, 3)
+    dirtyNeedsWaterWoodG.fillCircle(12, 10, 2.5)
+    dirtyNeedsWaterWoodG.fillCircle(8, 12, 2)
+    dirtyNeedsWaterWoodG.fillCircle(2, 8, 1.5)
+    // Water stain marks
+    dirtyNeedsWaterWoodG.fillStyle(0x4a3a2a, 0.4)
+    dirtyNeedsWaterWoodG.fillCircle(6, 8, 2)
+    dirtyNeedsWaterWoodG.fillCircle(14, 4, 1.5)
+    dirtyNeedsWaterWoodG.generateTexture('floor_dirty_needs_water', 16, 16)
+    dirtyNeedsWaterWoodG.destroy()
+
+    // Tile - dirty needs water
+    const dirtyNeedsWaterTileG = new Phaser.GameObjects.Graphics(this)
+    dirtyNeedsWaterTileG.fillStyle(0x909090, 1)
+    dirtyNeedsWaterTileG.fillRect(0, 0, 16, 16)
+    dirtyNeedsWaterTileG.lineStyle(1, 0x707070, 1)
+    dirtyNeedsWaterTileG.strokeRect(0.5, 0.5, 15, 15)
+    // Dark stains
+    dirtyNeedsWaterTileG.fillStyle(0x606060, 0.5)
+    dirtyNeedsWaterTileG.fillCircle(4, 4, 3)
+    dirtyNeedsWaterTileG.fillCircle(12, 12, 2.5)
+    dirtyNeedsWaterTileG.fillCircle(8, 8, 2)
+    // Water marks (darker)
+    dirtyNeedsWaterTileG.fillStyle(0x505050, 0.6)
+    dirtyNeedsWaterTileG.fillCircle(10, 3, 2)
+    dirtyNeedsWaterTileG.fillCircle(3, 13, 1.5)
+    dirtyNeedsWaterTileG.generateTexture('floor_dirty_needs_water_tile', 16, 16)
+    dirtyNeedsWaterTileG.destroy()
+
+    // Carpet - dirty needs water
+    const dirtyNeedsWaterCarpetG = new Phaser.GameObjects.Graphics(this)
+    dirtyNeedsWaterCarpetG.fillStyle(0x6B5345, 1)
+    dirtyNeedsWaterCarpetG.fillRect(0, 0, 16, 16)
+    for (let i = 0; i < 16; i++) {
+      dirtyNeedsWaterCarpetG.fillStyle(0x5B4335, 0.5)
+      dirtyNeedsWaterCarpetG.fillCircle(Math.random() * 14 + 1, Math.random() * 14 + 1, 0.8)
+    }
+    // Heavy stains
+    dirtyNeedsWaterCarpetG.fillStyle(0x4B3325, 0.7)
+    dirtyNeedsWaterCarpetG.fillCircle(5, 5, 3.5)
+    dirtyNeedsWaterCarpetG.fillCircle(12, 10, 3)
+    dirtyNeedsWaterCarpetG.fillCircle(8, 13, 2.5)
+    // Dust and dirt buildup
+    dirtyNeedsWaterCarpetG.fillStyle(0x3a2a1a, 0.6)
+    dirtyNeedsWaterCarpetG.fillCircle(10, 6, 2.5)
+    dirtyNeedsWaterCarpetG.fillCircle(3, 11, 2)
+    dirtyNeedsWaterCarpetG.generateTexture('floor_dirty_needs_water_carpet', 16, 16)
+    dirtyNeedsWaterCarpetG.destroy()
+
+    // ===== BASE STATION (Robot charging dock) =====
+    const baseG = new Phaser.GameObjects.Graphics(this)
+    // Base platform shadow
+    baseG.fillStyle(0x000000, 0.2)
+    baseG.fillRoundedRect(4, 14, 28, 10, 2)
+    // Main body
+    baseG.fillStyle(0x4a4a5a, 1)
+    baseG.fillRoundedRect(2, 4, 28, 18, 3)
+    // Top highlight
+    baseG.fillStyle(0x5a5a6a, 1)
+    baseG.fillRoundedRect(2, 4, 28, 6, 3)
+    // Charging indicator lights
+    baseG.fillStyle(0x00ff88, 0.9)
+    baseG.fillCircle(8, 14, 3)
+    baseG.fillStyle(0x00ff88, 0.6)
+    baseG.fillCircle(16, 14, 2)
+    baseG.fillStyle(0x00ff88, 0.3)
+    baseG.fillCircle(22, 14, 2)
+    // Charging contacts
+    baseG.fillStyle(0x888888, 1)
+    baseG.fillRect(8, 20, 4, 3)
+    baseG.fillRect(18, 20, 4, 3)
+    baseG.generateTexture('base_station', 32, 28)
+    baseG.destroy()
+
     // ===== WALL TILES (3D effect with depth) =====
     const wallG = new Phaser.GameObjects.Graphics(this)
     // Base wall color

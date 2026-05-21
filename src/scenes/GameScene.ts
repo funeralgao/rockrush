@@ -25,9 +25,14 @@ export default class GameScene extends Phaser.Scene {
   private totalTrash = 0
   private collectedTrash = 0
   private isGameOver = false
+  private dustBox = 0
+  private maxDustBox = 10
+  private waterTank = 100
+  private maxWaterTank = 100
 
   // Grid data
   private gridData: number[][] = []
+  private floorTypeData: number[][] = []  // 0 = normal, 1 = dirty (needs water)
   private floorTiles: Phaser.GameObjects.Image[][] = []
   private trashSprites: Phaser.GameObjects.Sprite[] = []
   private obstacles: Phaser.GameObjects.Image[] = []
@@ -42,6 +47,8 @@ export default class GameScene extends Phaser.Scene {
   private scoreText!: Phaser.GameObjects.Text
   private cleanText!: Phaser.GameObjects.Text
   private levelText!: Phaser.GameObjects.Text
+  private dustBoxBar!: Phaser.GameObjects.Graphics
+  private waterTankBar!: Phaser.GameObjects.Graphics
   private uiY = 8
   private uiContainer!: Phaser.GameObjects.Container
 
@@ -61,6 +68,9 @@ export default class GameScene extends Phaser.Scene {
   private virtualJoystick: { dx: number; dy: number } = { dx: 0, dy: 0 }
 
   private levelConfig!: LevelConfig
+
+  // Base station
+  private baseStation!: Phaser.GameObjects.Image
 
   // Mini-map radar
   private miniMap!: Phaser.GameObjects.Container
@@ -82,13 +92,16 @@ export default class GameScene extends Phaser.Scene {
     this.robotGridY = Math.floor(GRID_HEIGHT / 2)
     this.isMoving = false
     this.isGameOver = false
+    this.dustBox = 0
+    this.waterTank = 100
 
     this.initGrid(this.levelConfig)
     this.createMap()
     this.spawnFurniture(this.levelConfig.furniture)
     this.createRobot()
+    this.spawnBaseStation()
     this.createParticleEffects()
-    this.spawnTrash(this.levelConfig.trashCount)
+    this.spawnTrash(this.levelConfig.trashCount * 2)  // Increased trash count
     this.spawnObstacles(this.levelConfig.cableCount, 'cable')
     this.spawnObstacles(this.levelConfig.poopCount, 'poop')
     this.spawnObstacles(this.levelConfig.waterCount, 'water')
@@ -117,14 +130,19 @@ export default class GameScene extends Phaser.Scene {
 
   initGrid(levelConfig: LevelConfig) {
     this.gridData = []
+    this.floorTypeData = []
     for (let y = 0; y < GRID_HEIGHT; y++) {
       this.gridData[y] = []
+      this.floorTypeData[y] = []
       for (let x = 0; x < GRID_WIDTH; x++) {
         if (x === 0 || x === GRID_WIDTH - 1 || y === 0 || y === GRID_HEIGHT - 1) {
           this.gridData[y][x] = 1
         } else {
           this.gridData[y][x] = 0
         }
+        // Randomly mark some areas as dirty (needs water mopping)
+        // About 10% of floor tiles are dirty
+        this.floorTypeData[y][x] = Math.random() < 0.1 ? 1 : 0
       }
     }
 
@@ -147,8 +165,12 @@ export default class GameScene extends Phaser.Scene {
     this.floorTiles = []
 
     const floorType = this.levelConfig.floorType || 'wood'
+    // Normal dirty floor
     const dirtyFloorKey = floorType === 'tile' ? 'floor_dirty_tile' :
                           floorType === 'carpet' ? 'floor_dirty_carpet' : 'floor_dirty'
+    // Dirty floor that needs water (darker, more stained)
+    const dirtyNeedsWaterKey = floorType === 'tile' ? 'floor_dirty_needs_water_tile' :
+                                floorType === 'carpet' ? 'floor_dirty_needs_water_carpet' : 'floor_dirty_needs_water'
 
     for (let y = 0; y < GRID_HEIGHT; y++) {
       this.floorTiles[y] = []
@@ -163,7 +185,9 @@ export default class GameScene extends Phaser.Scene {
           wallTop.setDepth(0.1)
           this.floorTiles[y][x] = wall
         } else {
-          const tile = this.add.image(worldX + 8, worldY + 8, dirtyFloorKey)
+          // Use different floor texture based on floor type
+          const tileKey = this.floorTypeData[y][x] === 1 ? dirtyNeedsWaterKey : dirtyFloorKey
+          const tile = this.add.image(worldX + 8, worldY + 8, tileKey)
           tile.setDepth(0)
           this.floorTiles[y][x] = tile
         }
@@ -182,6 +206,30 @@ export default class GameScene extends Phaser.Scene {
       this.gridData[item.y][item.x] = 1
       this.furniture.push(furnImage)
     })
+  }
+
+  spawnBaseStation() {
+    // Place base station at a random accessible location
+    let bx, by
+    let attempts = 0
+    do {
+      bx = Phaser.Math.Between(5, GRID_WIDTH - 6)
+      by = Phaser.Math.Between(5, GRID_HEIGHT - 6)
+      attempts++
+    } while (
+      this.gridData[by][bx] !== 0 ||
+      (Math.abs(bx - this.robotGridX) < 10 && Math.abs(by - this.robotGridY) < 10) ||
+      this.floorTypeData[by][bx] === 1 ||
+      attempts > 100
+    )
+
+    const worldX = bx * TILE_SIZE + TILE_SIZE / 2
+    const worldY = by * TILE_SIZE + TILE_SIZE / 2
+
+    this.baseStation = this.add.image(worldX, worldY, 'base_station')
+    this.baseStation.setDepth(2)
+    this.baseStation.setData('gridX', bx)
+    this.baseStation.setData('gridY', by)
   }
 
   createRobot() {
@@ -516,49 +564,47 @@ export default class GameScene extends Phaser.Scene {
     this.uiContainer.setScrollFactor(0)
     this.uiContainer.setDepth(100)
 
-    // Lightning icon (no background)
-    this.uiContainer.add(this.add.text(8, this.uiY, '⚡', { fontSize: '12px', color: '#ff0000' }).setOrigin(0, 0.5))
+    const startX = 8
+    const rowHeight = 16
 
-    // Health bar background
-    this.uiContainer.add(this.add.rectangle(20, this.uiY, 80, 12, 0x444444).setOrigin(0, 0.5))
-
+    // Row 1: Health
+    this.uiContainer.add(this.add.text(startX, this.uiY, '⚡', { fontSize: '12px', color: '#ff0000' }).setOrigin(0, 0.5))
+    this.uiContainer.add(this.add.rectangle(startX + 14, this.uiY, 50, 10, 0x333333).setOrigin(0, 0.5))
     this.healthBar = this.add.graphics()
     this.uiContainer.add(this.healthBar)
-    this.updateHealthBar()
-
-    this.healthText = this.add.text(51, this.uiY, `${Math.round(this.health)}%`, {
-      fontFamily: 'Arial',
-      fontSize: '11px',
-      color: '#ffffff',
-      stroke: '#000000',
-      strokeThickness: 2,
+    this.healthText = this.add.text(startX + 66, this.uiY, `${Math.round(this.health)}%`, {
+      fontFamily: 'Arial', fontSize: '10px', color: '#ffffff', stroke: '#000000', strokeThickness: 1
     }).setOrigin(0, 0.5)
     this.uiContainer.add(this.healthText)
 
-    this.levelText = this.add.text(130, this.uiY, `${levelName}`, {
-      fontFamily: 'Arial',
-      fontSize: '9px',
-      color: '#cccccc',
-      stroke: '#000000',
-      strokeThickness: 2,
+    // Row 2: Dust box
+    this.uiContainer.add(this.add.text(startX, this.uiY + rowHeight, '🗑️', { fontSize: '10px' }).setOrigin(0, 0.5))
+    this.uiContainer.add(this.add.rectangle(startX + 14, this.uiY + rowHeight, 40, 10, 0x333333).setOrigin(0, 0.5))
+    this.dustBoxBar = this.add.graphics()
+    this.uiContainer.add(this.dustBoxBar)
+
+    // Row 3: Water tank
+    this.uiContainer.add(this.add.text(startX, this.uiY + rowHeight * 2, '💧', { fontSize: '10px' }).setOrigin(0, 0.5))
+    this.uiContainer.add(this.add.rectangle(startX + 14, this.uiY + rowHeight * 2, 40, 10, 0x333333).setOrigin(0, 0.5))
+    this.waterTankBar = this.add.graphics()
+    this.uiContainer.add(this.waterTankBar)
+
+    this.updateHealthBar()
+    this.updateDustBoxBar()
+    this.updateWaterTankBar()
+
+    this.levelText = this.add.text(startX + 60, this.uiY, `${levelName}`, {
+      fontFamily: 'Arial', fontSize: '9px', color: '#cccccc', stroke: '#000000', strokeThickness: 1
     }).setOrigin(0, 0.5)
     this.uiContainer.add(this.levelText)
 
-    this.scoreText = this.add.text(250, this.uiY, `分数: ${this.score}`, {
-      fontFamily: 'Arial',
-      fontSize: '11px',
-      color: '#ff4444',
-      stroke: '#000000',
-      strokeThickness: 2,
+    this.scoreText = this.add.text(startX + 120, this.uiY, `分数: ${this.score}`, {
+      fontFamily: 'Arial', fontSize: '11px', color: '#ff4444', stroke: '#000000', strokeThickness: 2
     }).setOrigin(0, 0.5)
     this.uiContainer.add(this.scoreText)
 
-    this.cleanText = this.add.text(400, this.uiY, `🧹 ${this.cleanPercent}%`, {
-      fontFamily: 'Arial',
-      fontSize: '11px',
-      color: '#44ff88',
-      stroke: '#000000',
-      strokeThickness: 2,
+    this.cleanText = this.add.text(startX + 210, this.uiY, `🧹 ${this.cleanPercent}%`, {
+      fontFamily: 'Arial', fontSize: '11px', color: '#44ff88', stroke: '#000000', strokeThickness: 2
     }).setOrigin(0, 0.5)
     this.uiContainer.add(this.cleanText)
 
@@ -643,16 +689,29 @@ export default class GameScene extends Phaser.Scene {
   updateHealthBar() {
     this.healthBar.clear()
     const healthPercent = this.health / this.maxHealth
-
     let color = 0x44ff44
     if (healthPercent < 0.3) color = 0xff4444
     else if (healthPercent < 0.6) color = 0xffaa00
-
     this.healthBar.fillStyle(color, 1)
-    this.healthBar.fillRect(20, this.uiY - 5, 80 * healthPercent, 10)
+    this.healthBar.fillRect(22, this.uiY - 5, 50 * healthPercent, 10)
+  }
 
-    this.healthBar.fillStyle(0xffffff, 0.3)
-    this.healthBar.fillRect(20, this.uiY - 5, 80 * healthPercent, 3)
+  updateDustBoxBar() {
+    this.dustBoxBar.clear()
+    const dustPercent = this.dustBox / this.maxDustBox
+    let color = 0x8B4513
+    if (dustPercent >= 0.9) color = 0xff4444
+    this.dustBoxBar.fillStyle(color, 1)
+    this.dustBoxBar.fillRect(22, this.uiY + 11, 40 * dustPercent, 10)
+  }
+
+  updateWaterTankBar() {
+    this.waterTankBar.clear()
+    const waterPercent = this.waterTank / this.maxWaterTank
+    let color = 0x4169E1
+    if (waterPercent <= 0.2) color = 0xff4444
+    this.waterTankBar.fillStyle(color, 1)
+    this.waterTankBar.fillRect(22, this.uiY + 27, 40 * waterPercent, 10)
   }
 
   setupControls() {
@@ -863,6 +922,31 @@ export default class GameScene extends Phaser.Scene {
 
   addCleanTrail(x: number, y: number) {
     if (this.gridData[y][x] === 0 && this.floorTiles[y][x]) {
+      // Check if floor needs water to clean
+      if (this.floorTypeData[y][x] === 1) {
+        // Floor needs water - check if we have water
+        if (this.waterTank <= 0) {
+          // No water - show warning and don't clean
+          const noWaterWarning = this.add.text(
+            this.robot.x,
+            this.robot.y - 30,
+            '⚠️ 需要加水!',
+            { fontSize: '10px', color: '#ff6600', stroke: '#000000', strokeThickness: 2 }
+          ).setOrigin(0.5).setDepth(50)
+          this.tweens.add({
+            targets: noWaterWarning,
+            alpha: 0,
+            y: noWaterWarning.y - 15,
+            duration: 800,
+            onComplete: () => noWaterWarning.destroy()
+          })
+          return
+        }
+        // Has water - consume water
+        this.waterTank = Math.max(0, this.waterTank - 5)
+      }
+
+      // Mark tile as cleaned
       this.gridData[y][x] = 2
       const shinyFloorKey = this.getShinyFloorKey()
       this.floorTiles[y][x].setTexture(shinyFloorKey)
@@ -943,6 +1027,38 @@ export default class GameScene extends Phaser.Scene {
         }
       }
     })
+
+    // Check base station reset
+    if (this.baseStation) {
+      const bx = this.baseStation.getData('gridX')
+      const by = this.baseStation.getData('gridY')
+      if (bx === this.robotGridX && by === this.robotGridY) {
+        this.resetDustBoxAndWater()
+      }
+    }
+  }
+
+  resetDustBoxAndWater() {
+    if (this.dustBox > 0 || this.waterTank < this.maxWaterTank) {
+      this.dustBox = 0
+      this.waterTank = this.maxWaterTank
+
+      // Show reset effect
+      const resetPopup = this.add.text(
+        this.robot.x,
+        this.robot.y - 30,
+        '🔄 水箱+尘盒已重置',
+        { fontSize: '10px', color: '#00ff88', stroke: '#000000', strokeThickness: 2 }
+      ).setOrigin(0.5).setDepth(50)
+
+      this.tweens.add({
+        targets: resetPopup,
+        alpha: 0,
+        y: resetPopup.y - 20,
+        duration: 800,
+        onComplete: () => resetPopup.destroy()
+      })
+    }
   }
 
   cleanWater(obs: Phaser.GameObjects.Image) {
@@ -1061,6 +1177,7 @@ export default class GameScene extends Phaser.Scene {
 
     this.score += 10
     this.collectedTrash++
+    this.dustBox = Math.min(this.maxDustBox, this.dustBox + 1)
     SoundManager.playCollect()
     this.updateCleanPercent()
 
@@ -1274,6 +1391,8 @@ export default class GameScene extends Phaser.Scene {
     this.scoreText.setText(`分数: ${this.score}`)
     this.cleanText.setText(`🧹 ${this.cleanPercent}%`)
     this.updateHealthBar()
+    this.updateDustBoxBar()
+    this.updateWaterTankBar()
   }
 
   checkGameOver() {
