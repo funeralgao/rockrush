@@ -740,6 +740,84 @@ export default class BootScene extends Phaser.Scene {
     sparkleG.generateTexture('sparkle', 16, 16)
     sparkleG.destroy()
 
+    // ===== SOCK (Rolled up sock) =====
+    const sockG = new Phaser.GameObjects.Graphics(this)
+    // Shadow
+    sockG.fillStyle(0x000000, 0.1)
+    sockG.fillEllipse(14, 16, 14, 8)
+    // Main sock body - blue with stripes
+    sockG.fillStyle(0x4169E1, 1)
+    sockG.fillEllipse(12, 12, 12, 10)
+    // Sock toe (darker)
+    sockG.fillStyle(0x2E4F9F, 1)
+    sockG.fillCircle(5, 12, 6)
+    // Stripes
+    sockG.lineStyle(2, 0x6189E1, 0.8)
+    sockG.strokeEllipse(12, 12, 12, 10)
+    sockG.lineStyle(1, 0x7189F1, 0.5)
+    sockG.strokeEllipse(12, 12, 8, 6)
+    // Highlight
+    sockG.fillStyle(0x7199E1, 0.5)
+    sockG.fillEllipse(14, 10, 6, 4)
+    sockG.generateTexture('sock', 24, 24)
+    sockG.destroy()
+
+    // ===== CRUMB (Food crumb) =====
+    const crumbG = new Phaser.GameObjects.Graphics(this)
+    // Main crumb pieces
+    crumbG.fillStyle(0xDAA520, 0.9)
+    crumbG.fillCircle(6, 8, 3)
+    crumbG.fillCircle(12, 6, 2.5)
+    crumbG.fillCircle(10, 12, 2)
+    crumbG.fillCircle(16, 10, 1.5)
+    crumbG.fillCircle(4, 14, 2)
+    // Darker bits
+    crumbG.fillStyle(0xB8860B, 0.7)
+    crumbG.fillCircle(8, 10, 1.5)
+    crumbG.fillCircle(14, 8, 1)
+    // Highlight
+    crumbG.fillStyle(0xFFD700, 0.4)
+    crumbG.fillCircle(5, 7, 1)
+    crumbG.generateTexture('crumb', 20, 20)
+    crumbG.destroy()
+
+    // ===== HAIR (Strand tangles) =====
+    const hairG = new Phaser.GameObjects.Graphics(this)
+    // Main hair strand
+    hairG.lineStyle(2, 0x2F2F2F, 0.8)
+    hairG.beginPath()
+    hairG.moveTo(4, 20)
+    hairG.lineTo(8, 14)
+    hairG.lineTo(6, 8)
+    hairG.lineTo(10, 4)
+    hairG.lineTo(8, 2)
+    hairG.strokePath()
+    // Second strand
+    hairG.lineStyle(2, 0x3F3F3F, 0.7)
+    hairG.beginPath()
+    hairG.moveTo(16, 20)
+    hairG.lineTo(14, 12)
+    hairG.lineTo(18, 6)
+    hairG.lineTo(16, 2)
+    hairG.strokePath()
+    // Third strand
+    hairG.lineStyle(1.5, 0x4F4F4F, 0.6)
+    hairG.beginPath()
+    hairG.moveTo(10, 18)
+    hairG.lineTo(12, 10)
+    hairG.lineTo(10, 4)
+    hairG.strokePath()
+    // Hair ball center
+    hairG.fillStyle(0x1F1F1F, 0.9)
+    hairG.fillCircle(10, 10, 4)
+    // Tangled bits
+    hairG.fillStyle(0x2F2F2F, 0.7)
+    hairG.fillCircle(6, 12, 2)
+    hairG.fillCircle(14, 8, 2)
+    hairG.fillCircle(8, 6, 1.5)
+    hairG.generateTexture('hair', 20, 22)
+    hairG.destroy()
+
     // ===== CLEAN TRAIL EFFECT (Green path) =====
     const trailG = new Phaser.GameObjects.Graphics(this)
     // Soft green circle

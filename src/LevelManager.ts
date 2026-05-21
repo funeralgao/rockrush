@@ -1,4 +1,4 @@
-// Level configurations - Open floor plan style
+// Level configurations - Large world layout
 export interface LevelConfig {
   id: number
   name: string
@@ -16,317 +16,323 @@ export interface LevelConfig {
 }
 
 export const LEVELS: LevelConfig[] = [
-  // Level 1: 客厅 - Open living room with TV area, sofa area, dining area
+  // Level 1: 客厅 - Large open living room (60x45 map)
   {
     id: 1,
     name: '客厅',
     theme: '现代客厅',
-    trashCount: 25,
-    cableCount: 3,
-    batteryCount: 4,
+    trashCount: 35,
+    cableCount: 4,
+    batteryCount: 5,
     poopCount: 0,
-    waterCount: 2,
-    toyCount: 2,
+    waterCount: 3,
+    toyCount: 3,
     baseHealth: 100,
-    // Outer walls + interior partitions
     walls: [
-      // Outer boundary (automatic from grid, but adding explicit)
-      // TV wall - long continuous
-      { x: 1, y: 15, w: 18, h: 1 },
-      // Sofa back - partial wall
-      { x: 4, y: 11, w: 8, h: 1 },
-      // Side bookshelf wall
-      { x: 26, y: 10, w: 1, h: 7 },
-      // TV cabinet unit
-      { x: 2, y: 16, w: 6, h: 1 },
-      // Dining area partition
-      { x: 20, y: 12, w: 6, h: 1 },
-      // Plant corner
-      { x: 27, y: 17, w: 2, h: 1 },
+      // TV area wall (top)
+      { x: 5, y: 8, w: 25, h: 1 },
+      // Sofa back wall (middle-left)
+      { x: 8, y: 20, w: 15, h: 1 },
+      // Bookshelf wall (right side)
+      { x: 50, y: 10, w: 1, h: 15 },
+      // Dining partition (center-right)
+      { x: 40, y: 25, w: 12, h: 1 },
+      // Counter top (bottom-left)
+      { x: 5, y: 35, w: 20, h: 1 },
+      // Plant corner (bottom-right)
+      { x: 52, y: 38, w: 5, h: 1 },
     ],
     furniture: [
-      { type: 'sofa', x: 8, y: 12 },
-      { type: 'table', x: 15, y: 10 },
-      { type: 'cabinet', x: 28, y: 6 },
+      { type: 'sofa', x: 15, y: 26 },
+      { type: 'table', x: 30, y: 18 },
+      { type: 'cabinet', x: 55, y: 12 },
+      { type: 'chair', x: 48, y: 28 },
     ],
     floorType: 'wood',
   },
-  // Level 2: 主卧 - Bedroom with bed, wardrobe, windowsill area
+  // Level 2: 主卧 - Large bedroom
   {
     id: 2,
     name: '主卧',
     theme: '温馨卧室',
-    trashCount: 20,
-    cableCount: 3,
-    batteryCount: 3,
-    poopCount: 1,
-    waterCount: 1,
-    toyCount: 1,
+    trashCount: 30,
+    cableCount: 4,
+    batteryCount: 4,
+    poopCount: 2,
+    waterCount: 2,
+    toyCount: 2,
     baseHealth: 100,
     walls: [
-      // Bed headboard wall
-      { x: 2, y: 6, w: 10, h: 1 },
-      // Wardrobe full height
-      { x: 25, y: 4, w: 1, h: 10 },
-      // Window seating
-      { x: 15, y: 14, w: 7, h: 1 },
+      // Bed headboard (top-left area)
+      { x: 5, y: 10, w: 20, h: 1 },
+      // Wardrobe (right side)
+      { x: 50, y: 8, w: 1, h: 20 },
+      // Window seating (bottom)
+      { x: 30, y: 38, w: 15, h: 1 },
       // Dressing table partition
-      { x: 3, y: 12, w: 5, h: 1 },
-      // Bedside table
-      { x: 14, y: 6, w: 2, h: 1 },
+      { x: 8, y: 25, w: 12, h: 1 },
+      // Closet (bottom-right)
+      { x: 48, y: 32, w: 8, h: 1 },
     ],
     furniture: [
-      { type: 'bed', x: 7, y: 9 },
-      { type: 'cabinet', x: 4, y: 8 },
-      { type: 'chair', x: 18, y: 15 },
+      { type: 'bed', x: 15, y: 18 },
+      { type: 'cabinet', x: 10, y: 16 },
+      { type: 'chair', x: 38, y: 40 },
+      { type: 'bookshelf', x: 55, y: 20 },
     ],
     floorType: 'carpet',
   },
-  // Level 3: 厨房 - Large kitchen with island, counters
+  // Level 3: 厨房 - Large kitchen
   {
     id: 3,
     name: '厨房',
     theme: '开放式厨房',
-    trashCount: 28,
-    cableCount: 4,
-    batteryCount: 4,
+    trashCount: 40,
+    cableCount: 5,
+    batteryCount: 5,
     poopCount: 0,
-    waterCount: 2,
-    toyCount: 1,
+    waterCount: 3,
+    toyCount: 2,
     baseHealth: 100,
     walls: [
-      // L-shaped counter top
-      { x: 1, y: 4, w: 12, h: 1 },
-      { x: 1, y: 4, w: 1, h: 8 },
+      // L-shaped counter (top-left)
+      { x: 3, y: 8, w: 25, h: 1 },
+      { x: 3, y: 8, w: 1, h: 15 },
       // Lower counter
-      { x: 1, y: 11, w: 7, h: 1 },
-      // Kitchen island
-      { x: 15, y: 9, w: 7, h: 1 },
-      // Fridge wall
-      { x: 26, y: 4, w: 1, h: 7 },
+      { x: 3, y: 22, w: 15, h: 1 },
+      // Kitchen island (center)
+      { x: 30, y: 18, w: 15, h: 1 },
+      // Fridge wall (right)
+      { x: 55, y: 8, w: 1, h: 15 },
       // Pantry
-      { x: 27, y: 12, w: 2, h: 1 },
+      { x: 50, y: 28, w: 8, h: 1 },
     ],
     furniture: [
-      { type: 'table', x: 18, y: 14 },
-      { type: 'chair', x: 14, y: 14 },
-      { type: 'chair', x: 22, y: 14 },
+      { type: 'table', x: 38, y: 30 },
+      { type: 'chair', x: 32, y: 30 },
+      { type: 'chair', x: 44, y: 30 },
+      { type: 'cabinet', x: 58, y: 12 },
     ],
     floorType: 'tile',
   },
-  // Level 4: 洗手间 - Bathroom with separate areas
+  // Level 4: 洗手间 - Large bathroom
   {
     id: 4,
     name: '洗手间',
     theme: '现代卫生间',
-    trashCount: 15,
-    cableCount: 2,
-    batteryCount: 3,
-    poopCount: 2,
-    waterCount: 3,
+    trashCount: 25,
+    cableCount: 3,
+    batteryCount: 4,
+    poopCount: 3,
+    waterCount: 4,
     toyCount: 0,
     baseHealth: 100,
     walls: [
-      // Vanity counter
-      { x: 1, y: 6, w: 10, h: 1 },
-      // Shower enclosure
-      { x: 21, y: 3, w: 1, h: 10 },
-      // Toilet partition
-      { x: 12, y: 12, w: 6, h: 1 },
+      // Vanity counter (top)
+      { x: 5, y: 10, w: 20, h: 1 },
+      // Shower enclosure (right)
+      { x: 45, y: 6, w: 1, h: 20 },
+      // Toilet partition (center)
+      { x: 25, y: 25, w: 15, h: 1 },
       // Storage niche
-      { x: 26, y: 8, w: 1, h: 6 },
+      { x: 52, y: 18, w: 1, h: 12 },
       // Mirror wall
-      { x: 2, y: 7, w: 6, h: 1 },
+      { x: 5, y: 14, w: 15, h: 1 },
     ],
     furniture: [
-      { type: 'bathtub', x: 24, y: 14 },
+      { type: 'bathtub', x: 50, y: 32 },
+      { type: 'cabinet', x: 8, y: 8 },
     ],
     floorType: 'tile',
   },
-  // Level 5: 儿童房 - Kids room with play zones
+  // Level 5: 儿童房 - Kids room
   {
     id: 5,
     name: '儿童房',
     theme: '童趣天地',
-    trashCount: 25,
-    cableCount: 3,
-    batteryCount: 4,
-    poopCount: 1,
-    waterCount: 2,
-    toyCount: 5,
+    trashCount: 35,
+    cableCount: 4,
+    batteryCount: 5,
+    poopCount: 2,
+    waterCount: 3,
+    toyCount: 8,
     baseHealth: 95,
     walls: [
       // Lower bunk back
-      { x: 2, y: 7, w: 8, h: 1 },
+      { x: 5, y: 15, w: 18, h: 1 },
       // Desk
-      { x: 15, y: 8, w: 9, h: 1 },
-      // Toy shelf
-      { x: 25, y: 10, w: 1, h: 6 },
-      // Bookshelf
-      { x: 8, y: 14, w: 6, h: 1 },
+      { x: 30, y: 16, w: 20, h: 1 },
+      // Toy shelf (right)
+      { x: 52, y: 20, w: 1, h: 15 },
+      // Bookshelf (center-bottom)
+      { x: 18, y: 30, w: 15, h: 1 },
       // Play area corner
-      { x: 2, y: 16, w: 4, h: 1 },
+      { x: 5, y: 35, w: 10, h: 1 },
     ],
     furniture: [
-      { type: 'bed', x: 5, y: 9 },
-      { type: 'table', x: 19, y: 11 },
-      { type: 'bookshelf', x: 3, y: 17 },
-      { type: 'chair', x: 27, y: 8 },
+      { type: 'bed', x: 12, y: 22 },
+      { type: 'table', x: 40, y: 24 },
+      { type: 'bookshelf', x: 8, y: 38 },
+      { type: 'chair', x: 55, y: 16 },
     ],
     floorType: 'carpet',
   },
-  // Level 6: 阳台 - Balcony with planting areas
+  // Level 6: 阳台 - Balcony
   {
     id: 6,
     name: '阳台',
     theme: '阳光花园',
-    trashCount: 22,
-    cableCount: 3,
-    batteryCount: 4,
+    trashCount: 30,
+    cableCount: 4,
+    batteryCount: 5,
     poopCount: 0,
-    waterCount: 3,
-    toyCount: 1,
+    waterCount: 4,
+    toyCount: 2,
     baseHealth: 100,
     walls: [
       // Planter left
-      { x: 1, y: 4, w: 6, h: 1 },
-      { x: 1, y: 4, w: 1, h: 5 },
+      { x: 3, y: 8, w: 12, h: 1 },
+      { x: 3, y: 8, w: 1, h: 12 },
       // Planter right
-      { x: 22, y: 3, w: 6, h: 1 },
-      { x: 27, y: 3, w: 1, h: 7 },
-      // Drying rack
-      { x: 11, y: 11, w: 8, h: 1 },
+      { x: 45, y: 6, w: 12, h: 1 },
+      { x: 56, y: 6, w: 1, h: 15 },
+      // Drying rack (center)
+      { x: 22, y: 22, w: 18, h: 1 },
       // Storage unit
-      { x: 15, y: 4, w: 1, h: 4 },
+      { x: 32, y: 8, w: 1, h: 10 },
     ],
     furniture: [
-      { type: 'chair', x: 14, y: 7 },
-      { type: 'chair', x: 19, y: 7 },
+      { type: 'chair', x: 28, y: 14 },
+      { type: 'chair', x: 38, y: 14 },
+      { type: 'table', x: 50, y: 30 },
     ],
     floorType: 'tile',
   },
-  // Level 7: 餐厅 - Dining room with sideboard
+  // Level 7: 餐厅 - Dining room
   {
     id: 7,
     name: '餐厅',
     theme: '雅致餐厅',
-    trashCount: 20,
-    cableCount: 2,
-    batteryCount: 3,
+    trashCount: 30,
+    cableCount: 3,
+    batteryCount: 4,
     poopCount: 0,
-    waterCount: 1,
+    waterCount: 2,
     toyCount: 0,
     baseHealth: 100,
     walls: [
-      // Sideboard
-      { x: 1, y: 4, w: 10, h: 1 },
-      // Window bench
-      { x: 17, y: 13, w: 10, h: 1 },
-      // Decorative shelf
-      { x: 25, y: 5, w: 1, h: 5 },
-      // Server area
-      { x: 12, y: 7, w: 4, h: 1 },
+      // Sideboard (top)
+      { x: 5, y: 8, w: 22, h: 1 },
+      // Window bench (bottom)
+      { x: 35, y: 35, w: 20, h: 1 },
+      // Decorative shelf (right)
+      { x: 52, y: 10, w: 1, h: 12 },
+      // Server area (center-left)
+      { x: 25, y: 15, w: 10, h: 1 },
     ],
     furniture: [
-      { type: 'table', x: 14, y: 10 },
-      { type: 'chair', x: 10, y: 10 },
-      { type: 'chair', x: 18, y: 10 },
-      { type: 'chair', x: 14, y: 6 },
-      { type: 'chair', x: 14, y: 14 },
+      { type: 'table', x: 30, y: 22 },
+      { type: 'chair', x: 22, y: 22 },
+      { type: 'chair', x: 38, y: 22 },
+      { type: 'chair', x: 30, y: 14 },
+      { type: 'chair', x: 30, y: 30 },
     ],
     floorType: 'wood',
   },
-  // Level 8: 书房 - Study with large desk and bookshelves
+  // Level 8: 书房 - Study
   {
     id: 8,
     name: '书房',
     theme: '静谧书房',
-    trashCount: 18,
-    cableCount: 5,
-    batteryCount: 2,
+    trashCount: 28,
+    cableCount: 6,
+    batteryCount: 3,
     poopCount: 0,
-    waterCount: 1,
+    waterCount: 2,
     toyCount: 0,
     baseHealth: 100,
     walls: [
-      // Large desk
-      { x: 2, y: 9, w: 12, h: 1 },
+      // Large desk (center-left)
+      { x: 5, y: 18, w: 25, h: 1 },
       // Left bookshelf
-      { x: 17, y: 4, w: 1, h: 9 },
+      { x: 35, y: 8, w: 1, h: 18 },
       // Right bookshelf
-      { x: 25, y: 3, w: 1, h: 10 },
+      { x: 52, y: 6, w: 1, h: 20 },
       // Monitor stand
-      { x: 14, y: 5, w: 2, h: 3 },
+      { x: 28, y: 10, w: 5, h: 6 },
       // Filing cabinet
-      { x: 2, y: 14, w: 5, h: 1 },
+      { x: 5, y: 30, w: 12, h: 1 },
     ],
     furniture: [
-      { type: 'table', x: 8, y: 12 },
-      { type: 'bookshelf', x: 3, y: 6 },
-      { type: 'chair', x: 21, y: 9 },
+      { type: 'table', x: 18, y: 26 },
+      { type: 'bookshelf', x: 8, y: 12 },
+      { type: 'chair', x: 42, y: 18 },
+      { type: 'cabinet', x: 56, y: 8 },
     ],
     floorType: 'wood',
   },
-  // Level 9: 玄关 - Entryway with shoe storage
+  // Level 9: 玄关 - Entryway
   {
     id: 9,
     name: '玄关',
     theme: '温馨入口',
-    trashCount: 15,
-    cableCount: 2,
-    batteryCount: 2,
-    poopCount: 1,
-    waterCount: 1,
-    toyCount: 2,
+    trashCount: 25,
+    cableCount: 3,
+    batteryCount: 3,
+    poopCount: 2,
+    waterCount: 2,
+    toyCount: 3,
     baseHealth: 100,
     walls: [
-      // Shoe cabinet
-      { x: 1, y: 7, w: 8, h: 1 },
-      // Bench
-      { x: 15, y: 11, w: 7, h: 1 },
-      // Coat closet
-      { x: 26, y: 4, w: 1, h: 8 },
+      // Shoe cabinet (left)
+      { x: 3, y: 15, w: 18, h: 1 },
+      // Bench (center)
+      { x: 30, y: 22, w: 15, h: 1 },
+      // Coat closet (right)
+      { x: 52, y: 8, w: 1, h: 18 },
       // Mirror panel
-      { x: 10, y: 4, w: 1, h: 5 },
+      { x: 22, y: 8, w: 1, h: 12 },
       // Umbrella stand
-      { x: 23, y: 14, w: 2, h: 1 },
+      { x: 48, y: 30, w: 5, h: 1 },
     ],
     furniture: [
-      { type: 'cabinet', x: 4, y: 9 },
-      { type: 'chair', x: 18, y: 13 },
+      { type: 'cabinet', x: 10, y: 20 },
+      { type: 'chair', x: 38, y: 28 },
+      { type: 'table', x: 55, y: 18 },
     ],
     floorType: 'tile',
   },
-  // Level 10: 储藏室 - Storage with workbench
+  // Level 10: 储藏室 - Storage
   {
     id: 10,
     name: '储藏室',
     theme: '杂物仓库',
-    trashCount: 30,
-    cableCount: 5,
-    batteryCount: 4,
-    poopCount: 2,
-    waterCount: 2,
-    toyCount: 2,
+    trashCount: 45,
+    cableCount: 6,
+    batteryCount: 5,
+    poopCount: 3,
+    waterCount: 3,
+    toyCount: 3,
     baseHealth: 90,
     walls: [
       // Left shelving
-      { x: 1, y: 4, w: 1, h: 10 },
-      { x: 1, y: 13, w: 6, h: 1 },
-      // Workbench
-      { x: 11, y: 9, w: 8, h: 1 },
+      { x: 3, y: 8, w: 1, h: 20 },
+      { x: 3, y: 27, w: 15, h: 1 },
+      // Workbench (center)
+      { x: 22, y: 18, w: 18, h: 1 },
       // Right shelving
-      { x: 24, y: 3, w: 1, h: 9 },
-      { x: 22, y: 10, w: 5, h: 1 },
-      // Stacked boxes
-      { x: 17, y: 15, w: 5, h: 1 },
+      { x: 50, y: 6, w: 1, h: 18 },
+      { x: 45, y: 20, w: 12, h: 1 },
+      // Stacked boxes (bottom)
+      { x: 35, y: 32, w: 12, h: 1 },
       // Tool rack
-      { x: 7, y: 5, w: 3, h: 1 },
+      { x: 15, y: 10, w: 8, h: 1 },
     ],
     furniture: [
-      { type: 'cabinet', x: 3, y: 5 },
-      { type: 'table', x: 14, y: 11 },
-      { type: 'bookshelf', x: 27, y: 4 },
+      { type: 'cabinet', x: 8, y: 10 },
+      { type: 'table', x: 30, y: 24 },
+      { type: 'bookshelf', x: 56, y: 8 },
+      { type: 'chair', x: 20, y: 35 },
     ],
     floorType: 'tile',
   },

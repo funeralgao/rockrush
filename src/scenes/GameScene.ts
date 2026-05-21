@@ -3,10 +3,10 @@ import GameState from '../GameState'
 import SoundManager from '../SoundManager'
 import { getLevelConfig, LevelConfig } from '../LevelManager'
 
-// Grid constants - Small fixed map
+// Grid constants - Large world for exploration
 const TILE_SIZE = 16
-const GRID_WIDTH = 30
-const GRID_HEIGHT = 20
+const GRID_WIDTH = 60
+const GRID_HEIGHT = 45
 
 export default class GameScene extends Phaser.Scene {
   // Robot vacuum
@@ -67,8 +67,9 @@ export default class GameScene extends Phaser.Scene {
   create() {
     this.levelConfig = getLevelConfig(GameState.currentLevel)
 
-    this.robotGridX = 1
-    this.robotGridY = 1
+    // Start in center of large map
+    this.robotGridX = Math.floor(GRID_WIDTH / 2)
+    this.robotGridY = Math.floor(GRID_HEIGHT / 2)
     this.isMoving = false
 
     this.initGrid(this.levelConfig)
@@ -87,6 +88,11 @@ export default class GameScene extends Phaser.Scene {
     this.setupTouchControls()
     this.playStartAnimation()
     this.setupSound()
+
+    // Camera follow robot in large world
+    this.cameras.main.startFollow(this.robot, true, 0.08, 0.08)
+    this.cameras.main.setZoom(1)
+    this.cameras.main.setBounds(0, 0, GRID_WIDTH * TILE_SIZE, GRID_HEIGHT * TILE_SIZE)
 
     SoundManager.startBgMusic()
   }
@@ -196,7 +202,7 @@ export default class GameScene extends Phaser.Scene {
     )
     this.robot.setDepth(10)
     this.robot.body!.setSize(18, 18)
-    this.robot.setCollideWorldBounds(true)
+    this.robot.setCollideWorldBounds(false)
 
     this.tweens.add({
       targets: this.robotGlow,
