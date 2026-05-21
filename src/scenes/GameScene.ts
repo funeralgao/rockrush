@@ -24,6 +24,7 @@ export default class GameScene extends Phaser.Scene {
   private cleanPercent = 0
   private totalTrash = 0
   private collectedTrash = 0
+  private isGameOver = false
 
   // Grid data
   private gridData: number[][] = []
@@ -42,6 +43,7 @@ export default class GameScene extends Phaser.Scene {
   private cleanText!: Phaser.GameObjects.Text
   private levelText!: Phaser.GameObjects.Text
   private uiY = 8
+  private uiContainer!: Phaser.GameObjects.Container
 
   // Visual effects
   private robotGlow!: Phaser.GameObjects.Arc
@@ -60,6 +62,14 @@ export default class GameScene extends Phaser.Scene {
 
   private levelConfig!: LevelConfig
 
+  // Mini-map radar
+  private miniMap!: Phaser.GameObjects.Container
+  private miniMapWidth = 80
+  private miniMapHeight = 60
+  private miniMapScaleX = 80 / GRID_WIDTH
+  private miniMapScaleY = 60 / GRID_HEIGHT
+  private miniMapElements: Phaser.GameObjects.GameObject[] = []
+
   constructor() {
     super({ key: 'GameScene' })
   }
@@ -71,6 +81,7 @@ export default class GameScene extends Phaser.Scene {
     this.robotGridX = Math.floor(GRID_WIDTH / 2)
     this.robotGridY = Math.floor(GRID_HEIGHT / 2)
     this.isMoving = false
+    this.isGameOver = false
 
     this.initGrid(this.levelConfig)
     this.createMap()
@@ -84,6 +95,7 @@ export default class GameScene extends Phaser.Scene {
     this.spawnBatteryPickups(this.levelConfig.batteryCount)
     this.spawnSpecialPickups(this.levelConfig.toyCount, 'toy')
     this.createUI(this.levelConfig.name)
+    this.createMiniMap()
     this.setupControls()
     this.setupTouchControls()
     this.playStartAnimation()
@@ -203,6 +215,7 @@ export default class GameScene extends Phaser.Scene {
     this.robot.setDepth(10)
     this.robot.body!.setSize(18, 18)
     this.robot.setCollideWorldBounds(false)
+    this.robot.setAngle(0) // Initial facing up
 
     this.tweens.add({
       targets: this.robotGlow,
@@ -498,22 +511,29 @@ export default class GameScene extends Phaser.Scene {
   }
 
   createUI(levelName: string) {
-    this.add.rectangle(8, this.uiY, 16, 16, 0x2a2a3e, 1).setOrigin(0, 0.5).setDepth(100).setStrokeStyle(1, 0xff0000)
-    this.add.rectangle(19, this.uiY, 80, 12, 0x444444).setOrigin(0, 0.5).setDepth(101)
+    // Create UI container that follows camera (fixed to camera view)
+    this.uiContainer = this.add.container(0, 0)
+    this.uiContainer.setScrollFactor(0)
+    this.uiContainer.setDepth(100)
+
+    // Lightning icon (no background)
+    this.uiContainer.add(this.add.text(8, this.uiY, '⚡', { fontSize: '12px', color: '#ff0000' }).setOrigin(0, 0.5))
+
+    // Health bar background
+    this.uiContainer.add(this.add.rectangle(20, this.uiY, 80, 12, 0x444444).setOrigin(0, 0.5))
 
     this.healthBar = this.add.graphics()
-    this.healthBar.setDepth(102)
+    this.uiContainer.add(this.healthBar)
     this.updateHealthBar()
 
-    this.add.text(9, this.uiY, '⚡', { fontSize: '12px', color: '#ff0000' }).setDepth(103).setOrigin(0, 0.5)
-
-    this.healthText = this.add.text(50, this.uiY, `${Math.round(this.health)}%`, {
+    this.healthText = this.add.text(51, this.uiY, `${Math.round(this.health)}%`, {
       fontFamily: 'Arial',
       fontSize: '11px',
       color: '#ffffff',
       stroke: '#000000',
       strokeThickness: 2,
-    }).setOrigin(0, 0.5).setDepth(103)
+    }).setOrigin(0, 0.5)
+    this.uiContainer.add(this.healthText)
 
     this.levelText = this.add.text(130, this.uiY, `${levelName}`, {
       fontFamily: 'Arial',
@@ -521,7 +541,8 @@ export default class GameScene extends Phaser.Scene {
       color: '#cccccc',
       stroke: '#000000',
       strokeThickness: 2,
-    }).setOrigin(0, 0.5).setDepth(103)
+    }).setOrigin(0, 0.5)
+    this.uiContainer.add(this.levelText)
 
     this.scoreText = this.add.text(250, this.uiY, `分数: ${this.score}`, {
       fontFamily: 'Arial',
@@ -529,7 +550,8 @@ export default class GameScene extends Phaser.Scene {
       color: '#ff4444',
       stroke: '#000000',
       strokeThickness: 2,
-    }).setOrigin(0, 0.5).setDepth(103)
+    }).setOrigin(0, 0.5)
+    this.uiContainer.add(this.scoreText)
 
     this.cleanText = this.add.text(400, this.uiY, `🧹 ${this.cleanPercent}%`, {
       fontFamily: 'Arial',
@@ -537,16 +559,85 @@ export default class GameScene extends Phaser.Scene {
       color: '#44ff88',
       stroke: '#000000',
       strokeThickness: 2,
-    }).setOrigin(0, 0.5).setDepth(103)
+    }).setOrigin(0, 0.5)
+    this.uiContainer.add(this.cleanText)
 
     if (!this.isTouchDevice) {
-      this.add.text(
+      this.uiContainer.add(this.add.text(
         this.cameras.main.width - 5,
         this.cameras.main.height - 5,
         'WASD/方向键 | P暂停 | ESC主菜单',
         { fontFamily: 'monospace', fontSize: '8px', color: '#666666', stroke: '#000000', strokeThickness: 1 }
-      ).setOrigin(1, 1).setDepth(100)
+      ).setOrigin(1, 1))
     }
+  }
+
+  createMiniMap() {
+    const mapX = this.cameras.main.width - this.miniMapWidth - 10
+    const mapY = this.cameras.main.height - this.miniMapHeight - 40
+
+    this.miniMap = this.add.container(mapX, mapY)
+    this.miniMap.setScrollFactor(0)
+    this.miniMap.setDepth(100)
+
+    // Circular background using graphics
+    const bg = this.add.graphics()
+    bg.fillStyle(0x000000, 0.8)
+    bg.fillCircle(this.miniMapWidth / 2, this.miniMapHeight / 2, this.miniMapWidth / 2)
+    bg.lineStyle(2, 0x00ff88, 0.8)
+    bg.strokeCircle(this.miniMapWidth / 2, this.miniMapHeight / 2, this.miniMapWidth / 2)
+    this.miniMap.add(bg)
+
+    // Add clipping mask to keep elements inside circle
+    const mask = this.add.graphics()
+    mask.fillStyle(0xffffff, 1)
+    mask.fillCircle(this.miniMapWidth / 2, this.miniMapHeight / 2, this.miniMapWidth / 2)
+    mask.setAlpha(0.01) // Nearly invisible but needed for clipping
+    this.miniMap.add(mask)
+  }
+
+  updateMiniMap() {
+    // Destroy old elements
+    this.miniMapElements.forEach(elem => elem.destroy())
+    this.miniMapElements = []
+
+    // Draw walls on mini map
+    this.levelConfig.walls.forEach(wall => {
+      const wallRect = this.add.rectangle(
+        wall.x * this.miniMapScaleX,
+        wall.y * this.miniMapScaleY,
+        wall.w * this.miniMapScaleX,
+        wall.h * this.miniMapScaleY,
+        0x666666
+      )
+      wallRect.setOrigin(0, 0)
+      this.miniMap.add(wallRect)
+      this.miniMapElements.push(wallRect)
+    })
+
+    // Draw furniture on mini map
+    this.levelConfig.furniture.forEach(furn => {
+      const furnDot = this.add.rectangle(
+        furn.x * this.miniMapScaleX,
+        furn.y * this.miniMapScaleY,
+        3,
+        3,
+        0x888888
+      )
+      furnDot.setOrigin(0, 0)
+      this.miniMap.add(furnDot)
+      this.miniMapElements.push(furnDot)
+    })
+
+    // Draw robot position
+    const robotDot = this.add.circle(
+      this.robotGridX * this.miniMapScaleX,
+      this.robotGridY * this.miniMapScaleY,
+      3,
+      0xff0000
+    )
+    this.miniMap.add(robotDot)
+    this.miniMapElements.push(robotDot)
   }
 
   updateHealthBar() {
@@ -558,10 +649,10 @@ export default class GameScene extends Phaser.Scene {
     else if (healthPercent < 0.6) color = 0xffaa00
 
     this.healthBar.fillStyle(color, 1)
-    this.healthBar.fillRect(19, this.uiY - 5, 80 * healthPercent, 10)
+    this.healthBar.fillRect(20, this.uiY - 5, 80 * healthPercent, 10)
 
     this.healthBar.fillStyle(0xffffff, 0.3)
-    this.healthBar.fillRect(19, this.uiY - 5, 80 * healthPercent, 3)
+    this.healthBar.fillRect(20, this.uiY - 5, 80 * healthPercent, 3)
   }
 
   setupControls() {
@@ -665,6 +756,7 @@ export default class GameScene extends Phaser.Scene {
     this.checkCollisions()
     this.drainHealth()
     this.updateUI()
+    this.updateMiniMap()
     this.checkGameOver()
     this.updateParticlePosition()
     this.updateRobotEffects()
@@ -732,13 +824,21 @@ export default class GameScene extends Phaser.Scene {
     this.robotGridX = newX
     this.robotGridY = newY
 
+    // Rotate robot before moving
+    this.updateRobotRotation()
+
     this.addCleanTrail(newX, newY)
     this.dustParticles.start()
+
+    // Wiggle animation during movement (subtle 20% squeeze)
+    this.robot.setScale(1.02, 0.98)
 
     this.tweens.add({
       targets: this.robot,
       x: newX * TILE_SIZE + TILE_SIZE / 2,
       y: newY * TILE_SIZE + TILE_SIZE / 2,
+      scaleX: 1,
+      scaleY: 1,
       duration: 80,
       ease: 'Linear',
       onComplete: () => {
@@ -746,6 +846,19 @@ export default class GameScene extends Phaser.Scene {
         this.dustParticles.stop()
       },
     })
+  }
+
+  updateRobotRotation() {
+    // Rotate robot clockwise to face movement direction
+    if (this.facingX === 1) {
+      this.robot.setAngle(90)
+    } else if (this.facingX === -1) {
+      this.robot.setAngle(-90)
+    } else if (this.facingY === -1) {
+      this.robot.setAngle(0)
+    } else if (this.facingY === 1) {
+      this.robot.setAngle(180)
+    }
   }
 
   addCleanTrail(x: number, y: number) {
@@ -1164,7 +1277,8 @@ export default class GameScene extends Phaser.Scene {
   }
 
   checkGameOver() {
-    if (this.health <= 0) {
+    if (this.health <= 0 && !this.isGameOver) {
+      this.isGameOver = true
       GameState.updateHighScore(this.score)
       SoundManager.playGameOver()
 
