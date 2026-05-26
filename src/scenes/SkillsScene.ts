@@ -1,6 +1,7 @@
 import Phaser from 'phaser'
 import { SKILLS, SkillStateList } from '../SkillsManager'
 import SoundManager from '../SoundManager'
+import GameState from '../GameState'
 
 interface SkillsSceneData {
   skillPoints: number
@@ -9,8 +10,8 @@ interface SkillsSceneData {
   onBack: () => void
 }
 
-// Cost for each level: going from 0→1 costs LEVEL_COSTS[1], 1→2 costs LEVEL_COSTS[2], etc.
-const LEVEL_COSTS = [0, 10, 50, 200]
+// Cost for each level: going from 0→1 costs 1 point, 1→2 costs 3 points
+const LEVEL_COSTS = [0, 1, 3]
 
 function getUpgradeCost(currentLevel: number): number {
   if (currentLevel >= 3) return Infinity
@@ -27,7 +28,15 @@ export default class SkillsScene extends Phaser.Scene {
   }
 
   init(data: SkillsSceneData) {
-    this.sceneData = data
+    // Always use current GameState data, not passed data (which may be stale)
+    this.sceneData = {
+      skillPoints: GameState.skillPoints,
+      skillState: GameState.skillState,
+      onUpgrade: (skillId: string) => {
+        GameState.upgradeSkill(skillId)
+      },
+      onBack: () => {},
+    }
   }
 
   create() {
@@ -169,6 +178,8 @@ export default class SkillsScene extends Phaser.Scene {
   }
 
   private refreshSkillLevels() {
+    this.sceneData.skillPoints = GameState.skillPoints
+    this.sceneData.skillState = GameState.skillState
     this.skillPointsText.setText(`技能点: ${this.sceneData.skillPoints}`)
     this.scene.restart(this.sceneData)
   }

@@ -25,6 +25,7 @@ class GameState {
 
   private constructor() {
     // Initialize all skills at level 0
+    this.skillState = []
     SKILLS.forEach(skill => {
       this.skillState.push({
         id: skill.id,
@@ -91,17 +92,39 @@ class GameState {
     this.totalSkillPointsEarned = 0
     this.unlockedLevels = 1
     this.hasPlayed = false
+    this.skillState = []
     SKILLS.forEach(skill => {
-      const state = this.skillState.find(s => s.id === skill.id)
-      if (state) state.currentLevel = 0
+      this.skillState.push({
+        id: skill.id,
+        currentLevel: 0,
+      })
     })
+    localStorage.removeItem(SAVE_KEY)
     this.save()
+  }
+
+  // Force reload from localStorage
+  forceReload() {
+    this.load()
   }
 
   addSkillPoints(points: number) {
     this.skillPoints += points
     this.totalSkillPointsEarned += points
     this.save()
+  }
+
+  // Award skill point for every 1000 points scored (call this when score increases)
+  checkAndAwardSkillPoint(score: number) {
+    const expectedPoints = Math.floor(score / 1000)
+    if (expectedPoints > this.totalSkillPointsEarned) {
+      const earned = expectedPoints - this.totalSkillPointsEarned
+      this.skillPoints += earned
+      this.totalSkillPointsEarned = expectedPoints
+      this.save()
+      return earned
+    }
+    return 0
   }
 
   upgradeSkill(skillId: string): boolean {
@@ -111,8 +134,8 @@ class GameState {
     if (!skill || !skillDef) return false
     if (skill.currentLevel >= skillDef.maxLevel) return false
 
-    // Cost for upgrading to next level
-    const costs = [0, 10, 50, 200] // level 0→1: 10, 1→2: 50, 2→3: 200
+    // Cost: 1st upgrade = 1 point, 2nd = 3 points
+    const costs = [0, 1, 3]
     const nextLevel = skill.currentLevel + 1
     const cost = costs[nextLevel] || Infinity
 

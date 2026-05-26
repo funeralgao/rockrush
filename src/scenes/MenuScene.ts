@@ -202,16 +202,7 @@ export default class MenuScene extends Phaser.Scene {
       SoundManager.playClick()
       this.cameras.main.fade(300, 0, 0, 0)
       this.time.delayedCall(300, () => {
-        this.scene.start('SkillsScene', {
-          skillPoints: GameState.skillPoints,
-          skillState: GameState.skillState,
-          onUpgrade: (skillId: string) => {
-            GameState.upgradeSkill(skillId)
-          },
-          onBack: () => {
-            this.scene.start('MenuScene')
-          },
-        })
+        this.scene.start('SkillsScene')
       })
     })
 
@@ -228,6 +219,21 @@ export default class MenuScene extends Phaser.Scene {
       fontSize: '10px',
       color: '#666666',
     }).setOrigin(0.5)
+
+    // Clear save button - bottom right
+    const clearBtn = this.add.text(width - 20, height - 20, '🗑️ 清空存档', {
+      fontFamily: 'Arial',
+      fontSize: '10px',
+      color: '#666666',
+    }).setOrigin(1, 1).setInteractive({ useHandCursor: true })
+
+    clearBtn.on('pointerover', () => clearBtn.setColor('#ff4444'))
+    clearBtn.on('pointerout', () => clearBtn.setColor('#666666'))
+    clearBtn.on('pointerdown', () => {
+      SoundManager.playClick()
+      GameState.resetProgress()
+      window.location.reload()
+    })
 
     // Check if user has played before - show restart button only if they have progress
     if (!GameState.hasPlayed) {

@@ -27,6 +27,7 @@ export default class GameScene extends Phaser.Scene {
   private isGameOver = false
   private dustBox = 0
   private maxDustBox = 10
+  private moveSpeed = 80  // milliseconds per tile
   private waterTank = 100
   private maxWaterTank = 100
 
@@ -95,6 +96,13 @@ export default class GameScene extends Phaser.Scene {
     this.health = 100
     this.dustBox = 0
     this.waterTank = 100
+
+    // Apply skill effects
+    const dustBoxLevel = GameState.getSkillLevel('big_dust_box')
+    this.maxDustBox = Math.floor(10 * (1 + dustBoxLevel * 3)) // 10, 40, 70, 100
+
+    const speedLevel = GameState.getSkillLevel('speed_up')
+    this.moveSpeed = 80 * (1 + (speedLevel * 0.2)) // Base 80ms, scales with speed_up
 
     this.initGrid(this.levelConfig)
     this.createMap()
@@ -349,7 +357,7 @@ export default class GameScene extends Phaser.Scene {
         attempts++
       } while (
         this.gridData[y][x] !== 0 &&
-        this.gridData[y][x] !== 2 &&
+        this.gridData[y][x] !== 2 ||
         (x === this.robotGridX && y === this.robotGridY) ||
         this.isTrashAt(x, y) ||
         attempts > 100
@@ -752,55 +760,104 @@ export default class GameScene extends Phaser.Scene {
 
     this.touchButtons = this.add.container(0, 0)
     this.touchButtons.setDepth(200)
+    this.touchButtons.setScrollFactor(0)
 
-    const btnSize = 36
+    const btnSize = 35
     const spacing = 40
     const startX = 50
-    const startY = height - 60
+    const startY = height - 50
 
     const directions = [
-      { label: '▲', dx: 0, dy: -1, x: startX + spacing, y: startY },
-      { label: '◀', dx: -1, dy: 0, x: startX, y: startY + spacing },
-      { label: '▼', dx: 0, dy: 1, x: startX + spacing, y: startY + spacing * 2 },
-      { label: '▶', dx: 1, dy: 0, x: startX + spacing * 2, y: startY + spacing },
+      { label: '▲', dx: 0, dy: -1, x: startX + spacing, y: startY - spacing, btn: null as Phaser.GameObjects.Rectangle | null, text: null as Phaser.GameObjects.Text | null },
+      { label: '◀', dx: -1, dy: 0, x: startX, y: startY, btn: null as Phaser.GameObjects.Rectangle | null, text: null as Phaser.GameObjects.Text | null },
+      { label: '▼', dx: 0, dy: 1, x: startX + spacing, y: startY, btn: null as Phaser.GameObjects.Rectangle | null, text: null as Phaser.GameObjects.Text | null },
+      { label: '▶', dx: 1, dy: 0, x: startX + spacing * 2, y: startY, btn: null as Phaser.GameObjects.Rectangle | null, text: null as Phaser.GameObjects.Text | null },
     ]
 
     directions.forEach(dir => {
-      const btn = this.add.rectangle(dir.x, dir.y, btnSize, btnSize, 0x2d2d44, 0.8)
-      btn.setStrokeStyle(2, 0x00ff88)
+      const btn = this.add.rectangle(dir.x, dir.y, btnSize, btnSize, 0xff2222, 0.9)
+      btn.setStrokeStyle(2, 0xffffff)
       btn.setInteractive({ useHandCursor: false })
-
-      const text = this.add.text(dir.x, dir.y, dir.label, {
+      dir.btn = btn
+      dir.text = this.add.text(dir.x, dir.y, dir.label, {
         fontSize: '16px',
-        color: '#00ff88',
+        color: '#ffffff',
       }).setOrigin(0.5)
 
-      btn.on('pointerdown', () => {
-        this.virtualJoystick.dx = dir.dx
-        this.virtualJoystick.dy = dir.dy
-      })
-
-      btn.on('pointerup', () => {
-        if (this.virtualJoystick.dx === dir.dx) this.virtualJoystick.dx = 0
-        if (this.virtualJoystick.dy === dir.dy) this.virtualJoystick.dy = 0
-      })
-
-      btn.on('pointerout', () => {
-        if (this.virtualJoystick.dx === dir.dx) this.virtualJoystick.dx = 0
-        if (this.virtualJoystick.dy === dir.dy) this.virtualJoystick.dy = 0
-      })
-
-      this.touchButtons.add([btn, text])
+      this.touchButtons.add([btn, dir.text!])
+      btn.setScrollFactor(0)
+      dir.text!.setScrollFactor(0)
     })
 
-    const menuBtn = this.add.rectangle(width - 40, height - 30, 60, 30, 0x2d2d44, 0.8)
+    // Track which direction is currently active
+    let activeDir: typeof directions[0] | null = null
+    const halfBtn = btnSize / 2
+
+    // Detect which direction the pointer is over
+    const getDirAtPointer = (px: number, py: number): typeof directions[0] | null => {
+      for (const dir of directions) {
+        const dx = px - dir.x
+        const dy = py - dir.y
+        if (Math.abs(dx) < halfBtn && Math.abs(dy) < halfBtn) {
+          return dir
+        }
+      }
+      return null
+    }
+
+    // Activate direction
+    const activateDir = (dir: typeof directions[0]) => {
+      if (activeDir) activeDir.btn!.setFillStyle(0xff2222)
+      dir.btn!.setFillStyle(0xff6666)
+      this.virtualJoystick.dx = dir.dx
+      this.virtualJoystick.dy = dir.dy
+      activeDir = dir
+    }
+
+    // Handle initial press
+    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      const dir = getDirAtPointer(pointer.x, pointer.y)
+      if (dir) activateDir(dir)
+    })
+
+    // Global pointer tracking for drag-swipe
+    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      if (!pointer.isDown) return
+
+      const dir = getDirAtPointer(pointer.x, pointer.y)
+
+      if (activeDir && activeDir !== dir) {
+        activeDir.btn!.setFillStyle(0xff2222)
+        this.virtualJoystick.dx = 0
+        this.virtualJoystick.dy = 0
+      }
+
+      if (dir) {
+        dir.btn!.setFillStyle(0xff6666)
+        this.virtualJoystick.dx = dir.dx
+        this.virtualJoystick.dy = dir.dy
+        activeDir = dir
+      }
+    })
+
+    this.input.on('pointerup', () => {
+      directions.forEach(d => d.btn!.setFillStyle(0xff2222))
+      this.virtualJoystick.dx = 0
+      this.virtualJoystick.dy = 0
+      activeDir = null
+    })
+
+    // Menu button - top right, keeping original green style
+    const menuBtn = this.add.rectangle(width - 40, 30, 60, 30, 0x2d2d44, 0.8)
+    menuBtn.setScrollFactor(0)
     menuBtn.setStrokeStyle(1, 0x666666)
     menuBtn.setInteractive({ useHandCursor: true })
 
-    const menuText = this.add.text(width - 40, height - 30, '菜单', {
+    const menuText = this.add.text(width - 40, 30, '菜单', {
       fontSize: '12px',
       color: '#888888',
     }).setOrigin(0.5)
+    menuText.setScrollFactor(0)
 
     menuBtn.on('pointerdown', () => {
       SoundManager.stopBgMusic()
@@ -901,7 +958,7 @@ export default class GameScene extends Phaser.Scene {
       y: newY * TILE_SIZE + TILE_SIZE / 2,
       scaleX: 1,
       scaleY: 1,
-      duration: 80,
+      duration: this.moveSpeed,
       ease: 'Linear',
       onComplete: () => {
         this.isMoving = false
@@ -1416,11 +1473,13 @@ export default class GameScene extends Phaser.Scene {
     this.updateHealthBar()
     this.updateDustBoxBar()
     this.updateWaterTankBar()
+    GameState.checkAndAwardSkillPoint(this.score)
   }
 
   checkGameOver() {
     if (this.health <= 0 && !this.isGameOver) {
       this.isGameOver = true
+      GameState.checkAndAwardSkillPoint(this.score)
       GameState.updateHighScore(this.score)
       SoundManager.playGameOver()
 

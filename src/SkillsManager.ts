@@ -29,6 +29,20 @@ export const SKILLS: Skill[] = [
     maxLevel: 3,
     icon: '🔋',
   },
+  {
+    id: 'speed_up',
+    name: '加速移动',
+    description: '提升机器人移动速度',
+    maxLevel: 3,
+    icon: '⚡',
+  },
+  {
+    id: 'big_dust_box',
+    name: '大容量尘盒',
+    description: '增加尘盒容量上限',
+    maxLevel: 3,
+    icon: '📦',
+  },
 ]
 
 // Get skill points needed for a level
@@ -55,6 +69,10 @@ export function getEffectMultiplier(skillId: string, level: number): number {
       return level * 0.5 // 0.5, 1.0, 1.5 range multiplier
     case 'eco_mode':
       return 1 - (level * 0.2) // 0.2, 0.4, 0.6 reduction
+    case 'speed_up':
+      return 1 + (level * 0.2) // 1.2, 1.4, 1.6 speed multiplier
+    case 'big_dust_box':
+      return 1 + (level * 0.5) // 1.5, 2.0, 2.5 dust box capacity multiplier
     default:
       return 0
   }
