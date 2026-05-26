@@ -7,6 +7,8 @@ import VictoryScene from './scenes/VictoryScene'
 import SkillsScene from './scenes/SkillsScene'
 import LevelSelectScene from './scenes/LevelSelectScene'
 
+let game: Phaser.Game | null = null
+
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
   width: 480,
@@ -27,4 +29,21 @@ const config: Phaser.Types.Core.GameConfig = {
   scene: [BootScene, MenuScene, GameScene, GameOverScene, VictoryScene, SkillsScene, LevelSelectScene],
 }
 
-new Phaser.Game(config)
+function startGame() {
+  if (game) {
+    game.destroy(true)
+  }
+  game = new Phaser.Game(config)
+}
+
+// Vite HMR: destroy old game before creating new one
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    if (game) {
+      game.destroy(true)
+      game = null
+    }
+  })
+}
+
+startGame()
